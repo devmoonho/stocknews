@@ -107,7 +107,9 @@ def figures_text(f: dict | None) -> str:
 def collect_status(conn, window: dict) -> tuple[list[dict], list[str]]:
     """이 시간대로 실행한 수집·마스터 갱신 기록(소스별 최신)과 경고."""
     rows = conn.execute(
-        "SELECT source, MAX(id) AS id FROM collect_runs WHERE window_start=? AND window_end=? GROUP BY source",
+        # 수집과 매칭은 각자 '지금'을 끝 시각으로 잡아 몇 초 차이가 난다 → 같은 시작, 끝이 매칭 시각 이전인 최신 기록
+        "SELECT source, MAX(id) AS id FROM collect_runs WHERE window_start=? AND window_end<=? "
+        "AND source NOT IN ('kiwoom_stocks','kiwoom_themes','naver_themes') GROUP BY source",
         (window["start"], window["end"])).fetchall()
     runs = []
     for r in rows:

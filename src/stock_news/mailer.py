@@ -13,7 +13,7 @@ import os
 import smtplib
 import ssl
 from email.message import EmailMessage
-from email.utils import formataddr, make_msgid
+from email.utils import formataddr, formatdate, make_msgid
 
 from .analysis.scoring import WEIGHTS
 from .report import (FACTOR_LABELS, SOURCE_NAMES, basis_tags, collect_status, disclosure_rows, figures_text,
@@ -244,6 +244,7 @@ def send(subject_text: str, html_body: str, text_body: str, to: list[str] | None
     msg["From"] = formataddr(("장전 리포트", user))
     msg["To"] = ", ".join(to)
     msg["Message-ID"] = make_msgid(domain=user.split("@")[-1])
+    msg["Date"] = formatdate(localtime=True)
     msg.set_content(text_body)
     msg.add_alternative(html_body, subtype="html")
     with smtplib.SMTP_SSL(host, port, context=ssl.create_default_context(), timeout=30) as s:
