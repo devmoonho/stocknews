@@ -1,0 +1,9 @@
+.env
+data/
+__pycache__/
+*.pyc
+ref/
+
+# 매일 생성되는 리포트(데이터) — 코드만 버전 관리
+reports/
+.claude/settings.local.json
