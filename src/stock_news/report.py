@@ -17,7 +17,8 @@ import json
 from .analysis.scoring import WEIGHTS
 
 FACTOR_LABELS = {"scale": "재료 규모", "exclusivity": "최초/독점", "novelty": "신규성",
-                 "policy": "정책 수혜", "diffusion": "확산도"}
+                 "policy": "정책 수혜", "diffusion": "확산도",
+                 "quality": "재료의 질", "preprice": "선반영(덜 오름)"}
 STARS = {5: "★★★★★", 4: "★★★★☆", 3: "★★★☆☆", 2: "★★☆☆☆", 1: "★☆☆☆☆"}
 
 
@@ -97,8 +98,21 @@ def figures_text(f: dict | None) -> str:
         parts.append(f"{v / 1e8:,.0f}억" if v >= 1e8 else f"{v:,.0f}원")
     if f.get("revenue_ratio_pct") is not None:
         parts.append(f"매출 대비 {f['revenue_ratio_pct']}%")
+    if f.get("years") and f["years"] > 1:
+        parts.append(f"계약 {f['years']}년(연환산 {f.get('annual_revenue_ratio_pct')}%)")
     if f.get("market_cap_ratio_pct") is not None:
         parts.append(f"시총 대비 {f['market_cap_ratio_pct']}%")
+    if f.get("kind") == "자사주취득" and f.get("method"):
+        parts.append(f["method"] + (f", 하루 약 {f['daily_amount'] / 1e8:,.1f}억" if f.get("daily_amount") else ""))
+    if f.get("kind") == "유상증자":
+        if f.get("discount_pct") is not None:
+            parts.append(f"할인 {f['discount_pct']}%")
+        if f.get("payment_date"):
+            parts.append(f"납입 {f['payment_date']}")
+        if f.get("lockup"):
+            parts.append(f"보호예수 {f['lockup']}")
+    if f.get("kind") == "경영권변경" and f.get("acquirer"):
+        parts.append(f"양수인 {f['acquirer']}")
     if f.get("note"):
         parts.append(f["note"])
     return " · ".join(parts) or "-"

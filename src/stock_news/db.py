@@ -144,6 +144,35 @@ CREATE TABLE IF NOT EXISTS price_paths (       -- D0~D+10 날짜별 누적 경�
     PRIMARY KEY (date, stock_code, n)
 );
 
+CREATE TABLE IF NOT EXISTS followups (         -- 채점한 재료의 후속 일정(유증 납입·경영권 거래종결) 추적
+    origin_rcept  TEXT NOT NULL,            -- 일정을 만든 공시 접수번호
+    kind          TEXT NOT NULL,            -- 유증납입 / 거래종결
+    stock_code    TEXT NOT NULL,
+    stock_name    TEXT,
+    origin_date   TEXT,                     -- 처음 채점한 리포트 날짜
+    due_date      TEXT,                     -- 예정일 YYYY-MM-DD
+    detail        TEXT,                     -- 금액·대상자 등 한 줄
+    status        TEXT NOT NULL DEFAULT '대기',   -- 대기 / 완료 / 정정 / 철회 / 기한경과
+    resolved_rcept TEXT,                    -- 상태를 바꾼 공시
+    updated_at    TEXT,
+    PRIMARY KEY (origin_rcept, kind)
+);
+CREATE TABLE IF NOT EXISTS intraday_patterns ( -- D0 장중 상한가 패턴 (1분봉, 사후 검증용)
+    date          TEXT NOT NULL,            -- 리포트 날짜 D0
+    stock_code    TEXT NOT NULL,
+    prev_close    REAL, limit_price REAL,   -- 전일 종가, 상한가(×1.3 호가단위 내림)
+    high          REAL, close REAL,
+    hit           INTEGER,                  -- 상한가 도달 여부
+    first_hit     TEXT,                     -- 처음 도달 시각 HH:MM
+    releases      INTEGER,                  -- 도달 후 상한가 아래로 내려온 횟수(해제)
+    rehit         INTEGER,                  -- 해제 뒤 다시 도달했나
+    closed_at_limit INTEGER,                -- 종가 상한가
+    minutes_at_limit INTEGER,               -- 상한가에 머문 분(1분봉 종가 기준)
+    bars          INTEGER,                  -- 사용한 1분봉 수
+    updated_at    TEXT,
+    PRIMARY KEY (date, stock_code)
+);
+
 CREATE TABLE IF NOT EXISTS weight_history (    -- 주간 가중치 조절 기록
     version       INTEGER PRIMARY KEY,
     applied_at    TEXT, target TEXT, sample_n INTEGER,
@@ -190,6 +219,10 @@ def _migrate(conn: sqlite3.Connection) -> None:
     cols = {r[1] for r in conn.execute("PRAGMA table_info(scores)")}
     if cols and "category" not in cols:             # 재료 유형
         conn.execute("ALTER TABLE scores ADD COLUMN category TEXT")
+        conn.commit()
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(scores)")}
+    if cols and "rubric_version" not in cols:       # 어떤 채점표 버전으로 채점했나 (v2: 재료의 질·선반영 추가)
+        conn.execute("ALTER TABLE scores ADD COLUMN rubric_version INTEGER")
         conn.commit()
 
 

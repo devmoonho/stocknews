@@ -51,7 +51,8 @@
 }
 ```
 - `final`은 호재 강도 1~5 (매수 추천이 아님). `bullish`는 이미 순위순.
-- factors 키: scale 규모 / exclusivity 독점성 / novelty 새로움 / policy 정책 연관 / diffusion 확산도
+- factors 키: scale 규모 / exclusivity 최초·독점 / novelty 신규성 / policy 정책 수혜 / diffusion 확산도 /
+  quality 재료의 질 / preprice 선반영(높을수록 재료 전에 덜 오름). 2026-11-13 이전 리포트에는 앞의 5개만 있다.
 
 ### `GET /api/report/{YYYY-MM-DD}/markdown`
 리포트 원문 마크다운. `{"date": "...", "markdown": "# 2026-11-13 장전 재료 리포트 ..."}`

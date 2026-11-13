@@ -1,13 +1,15 @@
 {
- "version": 1,
- "updated": "2026-11-12",
+ "version": 2,
+ "updated": "2026-11-13",
  "target": "oc_excess",
  "weights": {
-  "scale": 0.3,
-  "exclusivity": 0.15,
-  "novelty": 0.25,
-  "policy": 0.1,
-  "diffusion": 0.2
+  "scale": 0.28,
+  "exclusivity": 0.1,
+  "novelty": 0.22,
+  "policy": 0.08,
+  "diffusion": 0.17,
+  "quality": 0.08,
+  "preprice": 0.07
  },
- "note": "초기값(채점표 최초 작성)"
+ "note": "채점표 v2: 재료의 질(quality)·선반영(preprice) 항목 추가, 규모 산식 확장(시총 대비·연환산·신탁·유증 유입)"
 }

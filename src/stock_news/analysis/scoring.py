@@ -5,8 +5,8 @@ scores.json 형식 (Claude 작성):
   "date": "YYYY-MM-DD",
   "items": [
     {
-      "id": "S-005930" | "T-2:005930" | "P-1:005930",   # 다이제스트 식별자
-                                     # S=종목 근거, T=테마 신호에서 고른 종목, P=정부 정책뉴스에서 고른 종목
+      "id": "S-005930" | "T-2:005930" | "P-1:005930" | "F-1:005930",   # 다이제스트 식별자
+                                     # S=종목 근거, T=테마 신호, P=정부 정책뉴스, F=후속 이벤트(다이제스트 G)
       "code": "005930", "name": "삼성전자",
       "sentiment": "호재" | "악재",
       "material": "재료 한 줄 요약",
@@ -15,7 +15,9 @@ scores.json 형식 (Claude 작성):
         "exclusivity": {"score": 1-5, "reason": "..."},
         "novelty":     {"score": 1-5, "reason": "..."},
         "policy":      {"score": 1-5, "reason": "..."} | null,
-        "diffusion":   {"score": 1-5, "reason": "..."}
+        "diffusion":   {"score": 1-5, "reason": "..."},
+        "quality":     {"score": 1-5, "reason": "..."} | null,   # 재료의 질 — contract·mna·buyback은 필수
+        # "preprice"는 쓰지 않는다: score.py가 직전 5·20일 상승률·투자주의로 객관 점수를 채운다
       },
       "category": "contract",   # 재료 유형: contract 공급계약·수주 / earnings 실적 / buyback 자사주·주주환원 /
                                 # policy 정부 정책 / tech 기술·특허·허가 / mna M&A·지분·경영권 /
@@ -27,6 +29,7 @@ scores.json 형식 (Claude 작성):
 }
 악재 항목은 factors 없이 material/caution/sources만 있어도 된다.
 공시만 있고 기사가 없는 종목(다이제스트 '확산도 제외')은 "diffusion": null.
+채점표 v2(2026-11-13): quality(재료의 질)·preprice(선반영) 추가. 규모(scale)는 다이제스트의 객관 점수 그대로.
 
 정부 정책뉴스 검토 기록(선택, 리포트용):
   "reviewed_policies": [{"id": "P-1", "title": "...", "picked": ["005930"], "note": "고른 이유 또는 안 고른 이유 한 줄"}]
@@ -39,6 +42,8 @@ from .weights import current as _current_weights
 # 가중치는 config/weights.json (주간 리뷰가 데이터로 조절). 모듈 로드 시 현재 버전을 읽는다.
 WEIGHTS, WEIGHTS_VERSION = _current_weights()
 REQUIRED_FACTORS = ("scale", "exclusivity", "novelty", "diffusion")
+QUALITY_REQUIRED = ("contract", "mna", "buyback")     # 재료의 질 판단 근거(발주처·인수자·매입 방식)가 공시에 있는 유형
+RUBRIC_VERSION = 2
 
 
 def final_score(factors: dict) -> tuple[float, int]:
@@ -53,8 +58,18 @@ def final_score(factors: dict) -> tuple[float, int]:
     return round(raw, 2), max(1, min(5, int(raw + 0.5)))     # 반올림(.5 올림)
 
 
-def validate(scores: dict, candidates: dict) -> tuple[list[dict], list[str]]:
-    """→ (점수 계산된 항목들, 오류 목록). 객관 점수(확산도·규모)와 다르면 오류."""
+def _factor_ok(v) -> bool:
+    return isinstance(v, dict) and isinstance(v.get("score"), int) and 1 <= v["score"] <= 5 \
+        and bool(str(v.get("reason") or "").strip())
+
+
+def validate(scores: dict, candidates: dict, preprice: dict[str, dict | None] | None = None
+             ) -> tuple[list[dict], list[str]]:
+    """→ (점수 계산된 항목들, 오류 목록). 객관 점수(확산도·규모)와 다르면 오류.
+
+    preprice: {종목코드: {"score", "reason"} | None} — score.py가 가격 데이터로 계산해 넘긴다. 있으면 factors에 채운다.
+    """
+    preprice = preprice or {}
     errors: list[str] = []
     by_code = {s["code"]: s for s in candidates.get("stocks", [])}
     signals = candidates.get("theme_signals", [])
@@ -100,6 +115,14 @@ def validate(scores: dict, candidates: dict) -> tuple[list[dict], list[str]]:
         if p is not None and (not isinstance(p, dict) or not isinstance(p.get("score"), int) or not 1 <= p["score"] <= 5):
             errors.append(f"{tag}: factors.policy 는 null 또는 1~5 점수")
             ok = False
+        q = f.get("quality")
+        if q is None and it.get("category") in QUALITY_REQUIRED:
+            errors.append(f"{tag}: category {it.get('category')}는 factors.quality(재료의 질) 점수·근거가 필요 "
+                          "— 발주처/인수자·자금/매입 방식(채점표 6번)")
+            ok = False
+        elif q is not None and not _factor_ok(q):
+            errors.append(f"{tag}: factors.quality 는 null 또는 1~5 점수 + 한 줄 근거")
+            ok = False
         if not ok:
             continue
 
@@ -128,8 +151,18 @@ def validate(scores: dict, candidates: dict) -> tuple[list[dict], list[str]]:
                     errors.append(f"{tag}: 정부 정책뉴스(P-)에서 고른 종목은 factors.policy 점수가 필요")
             except (ValueError, IndexError):
                 errors.append(f"{tag}: id '{iid}'에 해당하는 정부 정책뉴스 없음")
+        elif iid.startswith("F-"):
+            try:
+                n = int(iid[2:].split(":")[0])
+                fu = candidates.get("followups", [])[n - 1]
+                if fu["stock_code"] != it["code"]:
+                    errors.append(f"{tag}: F-{n}는 {fu['stock_name']}({fu['stock_code']})의 후속 이벤트")
+                obj = by_code[it["code"]]["objective"] if it["code"] in by_code else \
+                    {"diffusion": {"score": None}, "scale_score": None}
+            except (ValueError, IndexError):
+                errors.append(f"{tag}: id '{iid}'에 해당하는 후속 이벤트 없음")
         else:
-            errors.append(f"{tag}: id '{iid}'가 다이제스트에 없음 (S-코드, T-번호:코드, P-번호:코드)")
+            errors.append(f"{tag}: id '{iid}'가 다이제스트에 없음 (S-코드, T-번호:코드, P-번호:코드, F-번호:코드)")
         if obj:
             want = obj["diffusion"]["score"]
             got = (f.get("diffusion") or {}).get("score")
@@ -139,8 +172,9 @@ def validate(scores: dict, candidates: dict) -> tuple[list[dict], list[str]]:
                 errors.append(f"{tag}: diffusion {got} ≠ 객관 점수 {want}")
             if obj.get("scale_score") is not None and f["scale"]["score"] != obj["scale_score"]:
                 errors.append(f"{tag}: scale {f['scale']['score']} ≠ 공시 수치 점수 {obj['scale_score']}")
+        f = {**f, "preprice": preprice.get(it["code"])}      # 객관 점수로 덮어씀(가격 데이터 없으면 null → 가중치에서 빠짐)
         raw, final = final_score(f)
-        out.append({**it, "final": final, "final_raw": raw})
+        out.append({**it, "factors": f, "final": final, "final_raw": raw, "rubric_version": RUBRIC_VERSION})
 
     out.sort(key=lambda x: (x["final"] is None, -(x["final_raw"] or 0)))
     return out, errors

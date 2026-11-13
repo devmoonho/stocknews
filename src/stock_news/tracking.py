@@ -8,6 +8,7 @@ D0 = 리포트 날짜(아침에 재료를 보고 장에 들어가는 날).
   oc_excess = oc_pct - 같은 시장 지수 oc_pct (기본 목표 지표: 시장 전체 움직임을 뺀 것)
   ret_Nd    = D+N 종가 / D0 시가 - 1         (N = 1, 3, 5 거래일)
   price_paths: D0 ~ D+10 매일의 누적 수익률·지수 대비 초과·최고가 — 재료 영향이 며칠 가는지(지속성) 분석용
+  intraday_patterns: D0 1분봉으로 상한가 도달·해제 횟수·재도달·종가 유지 (재료 신뢰도 보조 지표)
 비교 기준(control): 그날 후보였지만 채점하지 않은 종목 일부.
 """
 from __future__ import annotations
@@ -37,6 +38,12 @@ def _iso(d: str) -> str:
     return f"{d[:4]}-{d[4:6]}-{d[6:8]}"
 
 
+def _partial_day() -> str | None:
+    """장 마감(15:40) 전이면 오늘 날짜 — 그날 일봉은 아직 미완성."""
+    now = now_kst()
+    return f"{now:%Y-%m-%d}" if now.time() < dt.time(15, 40) else None
+
+
 class PriceStore:
     def __init__(self, conn, client: KiwoomClient) -> None:
         self.conn, self.client = conn, client
@@ -48,9 +55,10 @@ class PriceStore:
             return
         body, _, _ = self.client.call("ka10081", "/api/dostk/chart",
                                       {"stk_cd": code, "base_dt": f"{now_kst():%Y%m%d}", "upd_stkpc_tp": "1"})
+        partial = _partial_day()
         rows = [(code, _iso(r["dt"]), _num(r.get("open_pric")), _num(r.get("high_pric")), _num(r.get("low_pric")),
                  _num(r.get("cur_prc")), _num(r.get("trde_qty"))) for r in body.get("stk_dt_pole_chart_qry") or []
-                if r.get("dt")]
+                if r.get("dt") and _iso(r["dt"]) != partial]        # 장 마감 전 당일 봉은 미완성 → 저장 안 함
         self.conn.executemany("INSERT OR REPLACE INTO price_daily VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
         self._fresh.add(code)
 
@@ -60,13 +68,92 @@ class PriceStore:
                 continue
             body, _, _ = self.client.call("ka20006", "/api/dostk/chart",
                                           {"inds_cd": code, "base_dt": f"{now_kst():%Y%m%d}"})
+            partial = _partial_day()
             rows = [(code, _iso(r["dt"]), _num(r.get("open_pric")), _num(r.get("high_pric")), _num(r.get("low_pric")),
-                     _num(r.get("cur_prc"))) for r in body.get("inds_dt_pole_qry") or [] if r.get("dt")]
+                     _num(r.get("cur_prc"))) for r in body.get("inds_dt_pole_qry") or []
+                    if r.get("dt") and _iso(r["dt"]) != partial]
             self.conn.executemany("INSERT OR REPLACE INTO index_daily VALUES (?, ?, ?, ?, ?, ?)", rows)
             self._fresh.add(code)
 
     def series(self, table: str, code: str) -> list[dict]:
         return [dict(r) for r in self.conn.execute(f"SELECT * FROM {table} WHERE code=? ORDER BY dt", (code,))]
+
+
+def tick_size(price: float) -> int:
+    """KRX 호가단위(2023년 이후 코스피·코스닥 공통)."""
+    for lim, t in ((2000, 1), (5000, 5), (20000, 10), (50000, 50), (200000, 100), (500000, 500)):
+        if price < lim:
+            return t
+    return 1000
+
+
+def limit_up(prev_close: float) -> float:
+    raw = prev_close * 1.3
+    t = tick_size(raw)
+    return float(int(raw // t) * t)
+
+
+def _signed(v) -> float | None:
+    try:
+        return float(str(v).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+
+
+def intraday_pattern(bars: list[dict], date: str) -> dict | None:
+    """키움 ka10080 1분봉(최신순) → 그날 상한가 도달·해제·재도달 패턴.
+
+    전일 종가는 분봉의 '전일 대비'(pred_pre)로 역산한다(같은 응답 안에서 일관된 값).
+    해제 = 상한가에 닿은 뒤 어떤 1분봉 종가가 상한가 아래로 내려온 구간의 수.
+    """
+    ymd = date.replace("-", "")
+    day = sorted((b for b in bars if str(b.get("cntr_tm", "")).startswith(ymd)), key=lambda b: b["cntr_tm"])
+    if not day:
+        return None
+    last = day[-1]
+    cur, chg = _num(last.get("cur_prc")), _signed(last.get("pred_pre"))
+    if not cur or chg is None:
+        return None
+    prev = cur - chg
+    lim = limit_up(prev)
+    hi = max(_num(b.get("high_pric")) or 0 for b in day)
+    at = [(_num(b.get("cur_prc")) or 0) >= lim for b in day]
+    touched = [(_num(b.get("high_pric")) or 0) >= lim for b in day]
+    first = next((i for i, x in enumerate(touched) if x), None)
+    releases, rehit, state = 0, False, None
+    if first is not None:
+        state = True
+        for i in range(first, len(day)):
+            if state and not at[i] and not touched[i]:
+                releases += 1
+                state = False
+            elif not state and (at[i] or touched[i]):
+                rehit = True
+                state = True
+    return {"prev_close": prev, "limit_price": lim, "high": hi, "close": cur, "hit": int(first is not None),
+            "first_hit": f"{day[first]['cntr_tm'][8:10]}:{day[first]['cntr_tm'][10:12]}" if first is not None else None,
+            "releases": releases, "rehit": int(rehit), "closed_at_limit": int(cur >= lim),
+            "minutes_at_limit": sum(at), "bars": len(day)}
+
+
+def record_intraday(conn, client: KiwoomClient, date: str, codes: list[str], log=print) -> int:
+    """채점 종목의 D0 장중 패턴 → intraday_patterns. 1분봉은 최근 약 2거래일치만 받을 수 있어 그날·다음날 실행용."""
+    n = 0
+    for code in codes:
+        try:
+            body, _, _ = client.call("ka10080", "/api/dostk/chart", {"stk_cd": code, "tic_scope": "1", "upd_stkpc_tp": "1"})
+        except Exception as e:  # noqa: BLE001
+            log(f"  {date} {code} 분봉 조회 실패: {e}")
+            continue
+        pat = intraday_pattern(body.get("stk_min_pole_chart_qry") or [], date)
+        if not pat:
+            continue
+        row = {"date": date, "stock_code": code, **pat, "updated_at": f"{now_kst():%Y-%m-%d %H:%M:%S}"}
+        conn.execute(f"INSERT OR REPLACE INTO intraday_patterns ({', '.join(row)}) VALUES ({', '.join('?' * len(row))})",
+                     list(row.values()))
+        n += 1
+    conn.commit()
+    return n
 
 
 def _targets(conn, date: str) -> list[dict]:
@@ -120,7 +207,15 @@ def track(conn, client: KiwoomClient, dates: list[str] | None = None, log=print)
         pos = trading_days.index(date)
         need_until = trading_days[min(pos + PATH_DAYS, len(trading_days) - 1)]
         stats["dates"] += 1
-        for t in _targets(conn, date):
+        targets = _targets(conn, date)
+        # 장중 상한가 패턴: 1분봉은 최근 2거래일 정도만 받을 수 있어 D0·D+1 실행 때만 (이미 있으면 건너뜀)
+        recent = trading_days[-2:] if trading_days else []
+        if date in recent or date == today:
+            have = {r[0] for r in conn.execute("SELECT stock_code FROM intraday_patterns WHERE date=?", (date,))}
+            codes = [t["code"] for t in targets if t["grp"] == "scored" and t["sentiment"] == "호재" and t["code"] not in have]
+            if codes:
+                stats["intraday"] = stats.get("intraday", 0) + record_intraday(conn, client, date, codes, log)
+        for t in targets:
             try:
                 store.ensure_stock(t["code"], need_until)
             except Exception as e:  # noqa: BLE001 — 한 종목 실패로 전체를 멈추지 않음

@@ -1,0 +1,373 @@
+<title>장전 재료 리포트 시스템</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 레이아웃: 한 줄 읽기 폭의 문서 + 표·도식은 넓게. 색은 한국 시장 관례(상승=빨강, 하락=파랑)를 의미 색으로만 사용 */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --ink:#16202c; --muted:#5b6675; --line:#dde2e8;
+  --accent:#1f4e79; --accent-soft:#e6eef6;
+  --up:#c8102e; --up-soft:#fbe9ec; --down:#1e5bc6; --down-soft:#e8effb;
+  --font-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141a; --surface:#161d26; --ink:#e4e9ef; --muted:#9aa6b4; --line:#2a3440;
+  --accent:#8db8e3; --accent-soft:#1c2a3a;
+  --up:#ff6b7d; --up-soft:#3a1c22; --down:#6fa0ff; --down-soft:#1a2740; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f141a; --surface:#161d26; --ink:#e4e9ef; --muted:#9aa6b4; --line:#2a3440;
+  --accent:#8db8e3; --accent-soft:#1c2a3a;
+  --up:#ff6b7d; --up-soft:#3a1c22; --down:#6fa0ff; --down-soft:#1a2740; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15.5px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 72px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{line-height:1.3;text-wrap:balance;margin:0}
+h1{font-size:2rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.35rem;font-weight:700;display:flex;align-items:baseline;gap:10px}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0;max-width:65ch}
+section{display:flex;flex-direction:column;gap:16px}
+.eyebrow{font-family:var(--font-mono);font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lede{font-size:1.08rem;color:var(--muted)}
+.muted{color:var(--muted)}
+code,.mono{font-family:var(--font-mono);font-size:.86em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+a{color:var(--accent)}
+.sn{font-family:var(--font-mono);font-size:.8rem;color:var(--muted);font-weight:500}
+header{display:flex;flex-direction:column;gap:14px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+.facts{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:.88rem;color:var(--muted)}
+.facts b{color:var(--ink);font-weight:500}
+.scope{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.scope div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.scope ul{margin:0;padding-left:1.1em}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;padding:1px 8px;border-radius:999px}
+.tag.up{background:var(--up-soft);color:var(--up)} .tag.down{background:var(--down-soft);color:var(--down)}
+.tag.n{background:var(--accent-soft);color:var(--accent)}
+/* 하루 일정 */
+.timeline{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:22px 18px 18px;overflow-x:auto}
+.tl-track{position:relative;min-width:620px;height:118px}
+.tl-axis{position:absolute;left:0;right:0;top:46px;height:2px;background:var(--line)}
+.tl-session{position:absolute;top:40px;height:14px;border-radius:3px;background:var(--up-soft);border:1px solid var(--up)}
+.tl-window{position:absolute;top:40px;height:14px;border-radius:3px;background:var(--accent-soft);border:1px dashed var(--accent)}
+.tl-ev{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.78rem;text-align:center;white-space:nowrap}
+.tl-ev .t{font-family:var(--font-mono);font-weight:500}
+.tl-ev .dot{width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:23px;border:2px solid var(--surface)}
+.tl-lab{position:absolute;top:66px;font-size:.74rem;color:var(--muted);white-space:nowrap}
+.tl-tick{position:absolute;top:96px;transform:translateX(-50%);font-family:var(--font-mono);font-size:.7rem;color:var(--muted)}
+/* 파이프라인 */
+ol.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-left:2px solid var(--line);margin-left:14px}
+ol.steps li{position:relative;padding:0 0 18px 26px;display:flex;flex-direction:column;gap:3px}
+ol.steps li:last-child{padding-bottom:0}
+ol.steps li::before{content:attr(data-n);position:absolute;left:-15px;top:1px;width:28px;height:28px;border-radius:50%;background:var(--surface);border:2px solid var(--accent);color:var(--accent);font-family:var(--font-mono);font-size:.8rem;font-weight:500;display:grid;place-items:center}
+ol.steps li.ai::before{background:var(--accent);color:var(--surface)}
+.step-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding-top:2px}
+.step-h b{font-size:1rem}
+/* 표 */
+.tbl{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{padding:9px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+th{font-size:.78rem;font-weight:500;color:var(--muted);letter-spacing:.03em;background:var(--bg)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono);white-space:nowrap}
+/* 가중치 막대 */
+.weights{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:18px}
+.w-row{display:grid;grid-template-columns:7.5em 1fr 3.2em;gap:12px;align-items:center;font-size:.9rem}
+.w-bar{height:10px;background:var(--bg);border-radius:5px;overflow:hidden}
+.w-bar span{display:block;height:100%;background:var(--accent);border-radius:5px}
+.w-row .num{font-family:var(--font-mono);text-align:right;font-variant-numeric:tabular-nums}
+.w-row small{display:block;color:var(--muted);font-size:.74rem;line-height:1.3}
+/* 예시 계산 */
+.calc{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--up);border-radius:8px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.calc pre{margin:0;font-family:var(--font-mono);font-size:.84rem;line-height:1.75;white-space:pre-wrap;overflow-x:auto}
+.score{display:inline-flex;gap:3px;vertical-align:middle}
+.score i{width:10px;height:10px;border-radius:2px;background:var(--line)}
+.score i.on{background:var(--up)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card ul{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:2px}
+.note{font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.path{font-family:var(--font-mono);font-size:.82rem;word-break:break-all}
+footer{font-size:.82rem;color:var(--muted);border-top:1px solid var(--line);padding-top:18px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:520px){h1{font-size:1.6rem} .w-row{grid-template-columns:6em 1fr 3em}}
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="eyebrow">stock_news · 시스템 설명서</span>
+  <h1>전일 재료 기반 장전 리포트 시스템</h1>
+  <p class="lede">매일 아침 장이 열리기 전에, 전날 장 마감 이후 나온 뉴스·공시·정부 정책을 모아 종목별 호재 강도(1~5)를 매기고 리포트로 보내 주는 시스템입니다. 주문은 하지 않습니다. 최종 매매 판단은 사람이 합니다.</p>
+  <div class="facts">
+    <span>실행 장비 <b>미니PC (PN53, cron)</b></span>
+    <span>언어 <b>Python 3.12 표준 라이브러리만</b></span>
+    <span>채점 <b>Claude Code (화면 없는 실행)</b></span>
+    <span>저장소 <b>github.com/devmoonho/stocknews (private)</b></span>
+  </div>
+</header>
+
+<section>
+  <h2><span class="sn">01</span>하는 일과 하지 않는 일</h2>
+  <div class="scope">
+    <div>
+      <h3>하는 일</h3>
+      <ul>
+        <li>전일 15:30 ~ 당일 07:00 뉴스·공시·정책뉴스 수집</li>
+        <li>종목 찾기, 고정 채점표로 호재 강도 채점</li>
+        <li>리포트 작성 → 메일·텔레그램 발송</li>
+        <li>다음 날부터 실제 주가 반응 기록</li>
+        <li>매주 가중치 조절과 재료 유형별 영향 분석</li>
+        <li>내부망 읽기 전용 API로 RAS에 데이터 제공</li>
+      </ul>
+    </div>
+    <div>
+      <h3>하지 않는 일</h3>
+      <ul>
+        <li>주문·자동매매 (주문 API를 호출하지 않음)</li>
+        <li>매수 추천 (점수는 재료의 세기일 뿐)</li>
+        <li>장중 실시간 감시</li>
+        <li>수집한 데이터 삭제 (백테스트를 위해 모두 보관)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="sn">02</span>하루 일정</h2>
+  <p>평일에는 아침 리포트와 장 마감 후 반응 기록, 토요일에는 주간 리뷰가 자동으로 돕니다. 휴장일(<code>config/krx_holidays.txt</code>)과 주말에는 아침 리포트를 만들지 않고, 그 사이 뉴스는 다음 거래일 아침에 한꺼번에 모읍니다.</p>
+  <div class="timeline" role="img" aria-label="전일 15시 30분부터 당일 7시까지가 수집 구간이고, 7시에 리포트, 9시부터 15시 30분까지 장, 16시 10분에 반응 기록">
+    <div class="tl-track">
+      <div class="tl-axis"></div>
+      <!-- 축: 전일 15:00 (0%) ~ 당일 17:00 (100%), 26시간 -->
+      <div class="tl-window" style="left:1.92%;width:59.6%"></div>
+      <div class="tl-session" style="left:69.2%;width:25%"></div>
+      <div class="tl-lab" style="left:3%">수집 구간 · 전일 15:30 ~ 당일 07:00</div>
+      <div class="tl-lab" style="left:70%;color:var(--up)">정규장 09:00 ~ 15:30</div>
+      <div class="tl-ev" style="left:61.5%"><span class="t">07:00</span><span>아침 리포트</span><span class="dot"></span></div>
+      <div class="tl-ev" style="left:96.5%"><span class="t">16:10</span><span>반응 기록</span><span class="dot"></span></div>
+      <div class="tl-tick" style="left:1.92%">전일 15:30</div>
+      <div class="tl-tick" style="left:34.6%">00:00</div>
+      <div class="tl-tick" style="left:69.2%">09:00</div>
+      <div class="tl-tick" style="left:94.2%">15:30</div>
+    </div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>시각</th><th>스크립트</th><th>하는 일</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">평일 07:00</td><td class="mono">morning_auto.py</td><td>아침 1~8단계 전체. 보통 10분 안팎, 07:10 전후 도착. 실패하면 텔레그램 알림</td></tr>
+      <tr><td class="mono">평일 16:10</td><td class="mono">track_prices.py</td><td>채점 종목과 비교 종목의 시가·종가·지수 대비 초과수익, D+10까지 경로 기록</td></tr>
+      <tr><td class="mono">토 08:00</td><td class="mono">weekly_review.py</td><td>점수별·근거별 실제 반응 집계, 가중치 조절, 재료 영향 지속성 분석, 주간 리포트 발송</td></tr>
+      <tr><td class="mono">상시</td><td class="mono">serve_api.py</td><td>내부망 읽기 전용 API (포트 8770)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="sn">03</span>아침 절차 8단계</h2>
+  <p>순서는 고정입니다. 4단계만 Claude가 하고, 나머지는 모두 파이썬 스크립트가 합니다. 최종 점수도 Claude가 아니라 스크립트가 계산합니다.</p>
+  <ol class="steps">
+    <li data-n="1"><div class="step-h"><b>종목 마스터</b><code>update_master.py --skip-if-fresh</code></div>
+      <span class="muted">키움 REST에서 전 종목과 제외 대상(ETF/ETN·거래정지·관리종목·정리매매·상장폐지 추정), 키움 테마를 받습니다. 네이버 테마 265개와 종목별 편입 사유도 받습니다. 하루 한 번, 약 3~4분.</span></li>
+    <li data-n="2"><div class="step-h"><b>수집</b><code>collect.py</code></div>
+      <span class="muted">네이버 시황·전망, 정책브리핑, DART 공시를 모아 SQLite에 저장합니다. 0건이거나 형식이 바뀐 것 같으면 경고를 남기고, 경고는 리포트 맨 위에 그대로 옮깁니다.</span></li>
+    <li data-n="3"><div class="step-h"><b>매칭</b><code>match.py</code></div>
+      <span class="muted">기사와 공시에서 종목명·테마 키워드를 찾아 후보 종목을 만듭니다. 공시 수치로 규모 점수, 언론사 수로 확산도 점수를 객관적으로 미리 계산하고, Claude가 읽을 압축본(<code>candidates_digest.md</code>)을 씁니다.</span></li>
+    <li data-n="4" class="ai"><div class="step-h"><b>채점</b><span class="tag n">Claude</span></div>
+      <span class="muted">고정 채점표(<code>config/scoring_rubric.md</code>)대로 종목마다 항목 점수와 한 줄 근거, 재료 유형을 적습니다. 정부 정책뉴스는 하나씩 모두 읽고, 수혜 종목을 고르지 않은 정책도 검토 기록을 남깁니다. 악재는 점수 없이 따로 표시합니다.</span></li>
+    <li data-n="5"><div class="step-h"><b>검증·계산</b><code>score.py</code></div>
+      <span class="muted">객관 점수를 그대로 썼는지, 형식이 맞는지 확인하고 오류가 있으면 Claude가 고칠 때까지 반복합니다. 통과하면 가중치로 최종 점수를 계산해 DB에 저장합니다.</span></li>
+    <li data-n="6"><div class="step-h"><b>리포트</b><code>report.py</code></div>
+      <span class="muted"><code>reports/YYYY-MM-DD.md</code> 작성. 손으로 고치지 않고, 수정은 채점 파일부터 다시 거칩니다.</span></li>
+    <li data-n="7"><div class="step-h"><b>메일</b><code>send_report.py</code></div>
+      <span class="muted">메일용 HTML(표 레이아웃·인라인 스타일)과 텍스트 대체본을 Gmail로 보냅니다.</span></li>
+    <li data-n="8"><div class="step-h"><b>텔레그램 요약</b><code>send_telegram.py</code></div>
+      <span class="muted">호재 상위 7종목, 주의 종목, 수혜 정책을 짧게 보냅니다. 알림 전용 봇만 쓰고, 실거래를 제어하는 봇의 토큰은 절대 쓰지 않습니다.</span></li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="sn">04</span>데이터 출처</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>출처</th><th>가져오는 것</th><th>특이사항</th></tr></thead>
+    <tbody>
+      <tr><td>네이버 증권 시황·전망</td><td>뉴스 포커스 목록과 기사 본문</td><td>날짜별로 요청. 하루 1회만, 요청 간격 유지</td></tr>
+      <tr><td>정책브리핑 (korea.kr)</td><td>정부 정책뉴스 목록·본문</td><td>목록은 날짜만, 본문 메타에서 발행 시각을 읽음</td></tr>
+      <tr><td>DART (전자공시)</td><td>공시 목록, 접수 시각, 주요 공시 본문</td><td>목록 API에 시각이 없어 오늘의공시 페이지에서 붙임</td></tr>
+      <tr><td>키움 REST</td><td>종목 목록·상태, 테마, 일봉, 지수</td><td>현재 모의투자 키. 조회만 사용</td></tr>
+      <tr><td>네이버 테마</td><td>테마 265개, 설명, 종목별 편입 사유</td><td>테마 신호에서 기사 내용과 편입 사유가 맞는 종목만 고름</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="sn">05</span>채점 방식</h2>
+  <p>다섯 항목을 1~5점으로 매긴 뒤 가중평균을 냅니다. 해당 없는 항목(정책 재료가 아니면 정책, 기사 없이 공시만 있으면 확산도)은 빼고 나머지 가중치를 100%로 다시 맞춥니다.</p>
+  <div class="weights" aria-label="현재 가중치, 버전 1">
+    <div class="w-row"><span>재료 규모<small>공시 수치면 객관 점수</small></span><div class="w-bar"><span style="width:75%"></span></div><span class="num">30%</span></div>
+    <div class="w-row"><span>신규성<small>처음 나온 재료인가</small></span><div class="w-bar"><span style="width:62.5%"></span></div><span class="num">25%</span></div>
+    <div class="w-row"><span>확산도<small>언론사 수, 객관 점수</small></span><div class="w-bar"><span style="width:50%"></span></div><span class="num">20%</span></div>
+    <div class="w-row"><span>최초/독점<small>세계 최초·독점 공급 등</small></span><div class="w-bar"><span style="width:37.5%"></span></div><span class="num">15%</span></div>
+    <div class="w-row"><span>정책 수혜<small>정책 재료일 때만</small></span><div class="w-bar"><span style="width:25%"></span></div><span class="num">10%</span></div>
+    <p class="note">현재 가중치 버전 1 (<code>config/weights.json</code>, 2026-11-12 초기값). 막대 끝은 상한 40%. 매주 토요일 실제 주가 반응을 보고 조금씩 바뀝니다.</p>
+  </div>
+
+  <div class="calc">
+    <h3>실제 예: 2026-11-13 1위 금호건설 <span class="tag up">호재 4</span> <span class="tag n">공시</span></h3>
+    <p class="muted">연세대학교 의료원과 3,720억 원 공사 수주, 매출 대비 18.43%. 기사 없이 공시만 있어 확산도는 빠지고, 정책 재료가 아니라 정책도 빠집니다.</p>
+<pre>규모     3 <span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>  매출 대비 10~20% 구간 (객관 점수)     × 0.30
+최초/독점 2 <span class="score"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></span>  경쟁 입찰, 차별성 언급 없음            × 0.15
+신규성   5 <span class="score"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>  11-12 17:36 신규 공시, 최근 30일 공시 없음 × 0.25
+
+(0.90 + 0.30 + 1.25) ÷ (0.30 + 0.15 + 0.25) = 2.45 ÷ 0.70 = <b>3.50 → 4점</b></pre>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>재료 규모 기준 (공시 수치)</h3>
+      <ul>
+        <li>공급계약: 매출 대비 50%↑ 5 · 20~50% 4 · 10~20% 3 · 5~10% 2 · 미만 1</li>
+        <li>자사주·지분 취득·시설투자: 시가총액 대비 10%↑ 5 · 5~10% 4 · 2~5% 3 · 1~2% 2</li>
+        <li>정정공시는 바뀐 부분(증액분)으로 판단</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>채점 원칙</h3>
+      <ul>
+        <li>근거는 한 줄, 숫자와 출처 포함. 없는 사실은 쓰지 않고, 추측은 "추정"으로 표시</li>
+        <li>시황 기사 속 등락 나열, 단순 시세 기사는 재료가 아님</li>
+        <li>악재(유상증자·CB·소송·실적 쇼크 등)는 점수 없이 주의 종목으로</li>
+        <li>재료 유형 9가지: 공급계약·수주, 실적, 자사주·주주환원, 정부 정책, 기술·특허·허가, M&amp;A·지분, 시설투자, 협력·MOU, 기타</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="sn">06</span>리포트와 전달</h2>
+  <div class="two">
+    <div class="card">
+      <h3>리포트 구성</h3>
+      <ul>
+        <li>요약과 수집 경고</li>
+        <li>장 시작 전 체크리스트: 지수 흐름, 장 초반 매수세, 외국인·기관·개인 수급 (직접 기입)</li>
+        <li>호재 순위표: 강도, 근거 태그 <span class="tag n">공시</span> <span class="tag n">뉴스</span> <span class="tag n">정책</span>, 시초가·메모 칸</li>
+        <li>종목별 항목 점수·근거·원문 링크</li>
+        <li>공시 기반 종목, 주의 종목 <span class="tag down">악재</span></li>
+        <li>정책뉴스 검토 결과, 수집 현황</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>받는 곳</h3>
+      <ul>
+        <li><b>메일</b>: 전체 리포트 (HTML, 휴대폰에서도 표가 깨지지 않게)</li>
+        <li><b>텔레그램</b>: 상위 7종목·주의 종목·수혜 정책 요약, 실패 알림</li>
+        <li><b>파일</b>: 미니PC <span class="path">reports/YYYY-MM-DD.md</span></li>
+        <li><b>RAS 뉴스 탭</b>: 읽기 전용 API로 조회</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="sn">07</span>사후 검증과 가중치 조절</h2>
+  <p>점수가 실제로 맞았는지 매일 기록하고, 매주 그 결과로 가중치를 조금씩 고칩니다. 기준은 <b>D0 시가에 샀다면 종가까지 같은 시장 지수보다 얼마나 더 올랐나</b>(지수 대비 초과수익)입니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>기록 항목</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>시초가 갭</td><td>시가 ÷ 전일 종가 − 1. 아침에 들어가기 전에 이미 얼마나 반영됐나</td></tr>
+      <tr><td>시가→종가, 지수 대비 초과</td><td>시가 매수 기준 당일 성과에서 같은 시장 지수 움직임을 뺀 값 (가중치 조절의 목표 지표)</td></tr>
+      <tr><td>D+1·3·5 수익률</td><td>D0 시가 매수 → N거래일 뒤 종가</td></tr>
+      <tr><td>D0~D+10 경로</td><td>매일의 누적 초과수익과 장중 최고가. 재료 영향이 며칠 가는지 분석</td></tr>
+      <tr><td>비교 종목</td><td>후보였지만 채점하지 않은 종목 하루 20개. 채점 종목이 정말 나았는지 비교 기준</td></tr>
+    </tbody>
+  </table></div>
+  <div class="two">
+    <div class="card">
+      <h3>주간 가중치 조절 규칙</h3>
+      <ul>
+        <li>항목 점수와 실제 초과수익의 순위 상관을 계산</li>
+        <li>표본 40건 이상, 항목별 20건 이상일 때만 조절</li>
+        <li>한 번에 최대 ±5%p, 각 항목 5~40% 범위</li>
+        <li>바뀐 내용은 <code>weight_history</code>에 기록, 채점 중에는 바꾸지 않음</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>재료 영향 지속성 (주간 리포트)</h3>
+      <ul>
+        <li>재료 유형별, 근거별(공시·뉴스·정책) 평균 누적 경로</li>
+        <li>정점: 평균 경로가 가장 높은 날과 값</li>
+        <li>지속: 정점의 절반 이하로 처음 떨어진 날</li>
+        <li>예: "공시 공급계약은 D+2에 +3.1%로 정점, D+5에 절반 이하"</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">2026-11-13 기준 표본은 아직 적어서(이틀 치) 가중치는 초기값 그대로입니다. 40건이 쌓이는 2~3주 뒤부터 조절이 시작됩니다.</p>
+</section>
+
+<section>
+  <h2><span class="sn">08</span>RAS 연동 API</h2>
+  <p>미니PC에서 조회만 되는 API가 상시로 돌고 있습니다. 내부망 IP와 토큰이 맞는 요청만 받습니다. 명세는 <code>docs/api.md</code>에 있습니다.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>경로</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">/api/report/latest</td><td>오늘 호재 순위, 항목 점수·근거, 주의 종목, 수집 경고</td></tr>
+      <tr><td class="mono">/api/news</td><td>뉴스 목록 (출처·기간·검색어·종목 필터), <span class="mono">/api/news/{id}</span> 본문</td></tr>
+      <tr><td class="mono">/api/disclosures</td><td>공시 목록, <span class="mono">/api/disclosures/{접수번호}</span> 본문</td></tr>
+      <tr><td class="mono">/api/stocks?q=</td><td>종목 검색 (이름·코드 일부, 자동완성용)</td></tr>
+      <tr><td class="mono">/api/stock/{코드}</td><td>종목의 채점 이력·주가 반응·테마·최근 뉴스와 공시</td></tr>
+      <tr><td class="mono">/api/dates, /api/health</td><td>리포트 날짜 목록, 연결 확인</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="sn">09</span>데이터와 파일 위치</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>위치</th><th>내용</th></tr></thead>
+    <tbody>
+      <tr><td class="path">data/stock_news.db</td><td>기사·공시·종목·테마·채점·주가·반응·가중치 이력. 지우지 않음</td></tr>
+      <tr><td class="path">data/work/날짜/</td><td>그날 후보·다이제스트·채점 파일, 메일 미리보기</td></tr>
+      <tr><td class="path">data/logs/</td><td>날짜별 실행 로그, cron.log, api.log</td></tr>
+      <tr><td class="path">reports/</td><td>일일 리포트, <span class="path">reports/weekly/</span> 주간 리포트</td></tr>
+      <tr><td class="path">config/</td><td>채점표, 가중치, 휴장일, 오탐 조정 목록(종목명·별칭·테마 키워드·정책 키워드)</td></tr>
+      <tr><td class="path">.env</td><td>DART·키움·메일·텔레그램·Claude·API 토큰. 출력·커밋하지 않음</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="sn">10</span>운영 메모</h2>
+  <div class="two">
+    <div class="card">
+      <h3>문제가 생기면</h3>
+      <ul>
+        <li>텔레그램 실패 알림 → 그날 아침 <code>/morning-report</code> 또는 <code>morning_auto.py</code> 재실행</li>
+        <li>실패한 날을 나중에 메우려면 <code>collect.py --since --until</code>로 수집만 (리포트는 안 만들어짐)</li>
+        <li>엉뚱한 종목이 잡히면 <code>config/</code>의 오탐 목록에 추가</li>
+        <li>로그: <span class="path">data/logs/날짜.log</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>정기 관리</h3>
+      <ul>
+        <li>연초: 다음 해 휴장일을 <code>krx_holidays.txt</code>에 추가</li>
+        <li>실거래 키로 바꾸면 <code>KIWOOM_MOCK=0</code></li>
+        <li>가중치가 바뀌면 가끔 커밋·push</li>
+        <li>API 자동 시작 cron(@reboot, 10분 감시) 등록 확인</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card">
+    <h3>알려진 한계</h3>
+    <ul>
+      <li>장중(07:00~15:30) 기사는 수집하지 않습니다. 네이버는 시황·전망 섹션만 모으므로 종목 개별 뉴스 전체가 있는 것은 아닙니다.</li>
+      <li>뉴스·공시 데이터는 2026-11-11부터 쌓였습니다.</li>
+      <li>07시 직후에는 당일 공시가 거의 없어 "오늘의공시 0건" 경고가 뜰 수 있습니다.</li>
+      <li>점수는 재료의 세기입니다. 시초가에 이미 반영된 재료는 점수가 높아도 수익으로 이어지지 않을 수 있어, 체크리스트와 시초가 갭을 함께 봐야 합니다.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>2026-11-13 기준 · stock_news 커밋 0a449c6 · 이 문서의 수치는 config/weights.json 버전 1과 2026-11-13 리포트에서 가져왔습니다.</footer>
+</div>

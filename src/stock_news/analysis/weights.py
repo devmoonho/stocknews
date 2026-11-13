@@ -6,7 +6,7 @@ import json
 from ..config import CONFIG_DIR
 
 PATH = CONFIG_DIR / "weights.json"
-FACTORS = ("scale", "exclusivity", "novelty", "policy", "diffusion")
+FACTORS = ("scale", "exclusivity", "novelty", "policy", "diffusion", "quality", "preprice")
 DEFAULT = {"version": 1, "updated": "2026-11-12", "target": "oc_excess",
            "weights": {"scale": 0.30, "exclusivity": 0.15, "novelty": 0.25, "policy": 0.10, "diffusion": 0.20},
            "note": "초기값(채점표 최초 작성)"}
@@ -24,4 +24,4 @@ def save(cfg: dict) -> None:
 
 def current() -> tuple[dict[str, float], int]:
     cfg = load()
-    return {k: float(cfg["weights"][k]) for k in FACTORS}, int(cfg["version"])
+    return {k: float(cfg["weights"][k]) for k in FACTORS if k in cfg["weights"]}, int(cfg["version"])

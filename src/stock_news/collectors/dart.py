@@ -111,7 +111,9 @@ def collect(conn, window: Window, fetch_bodies: bool = True) -> dict:
 
     inserted = sum(db.upsert_disclosure(conn, d) for d in merged)
     conn.commit()
-    majors = [d for d in merged if _is_major(d)]
+    from ..analysis.followup import watched_codes
+    watched = watched_codes(conn)                 # 후속 일정 추적 중인 종목은 지분·정정 공시도 본문까지
+    majors = [d for d in merged if _is_major(d) or (d.get("stock_code") in watched)]
     print(f"  공시 {len(merged)}건 (신규 {inserted}건, 주요 {len(majors)}건)")
 
     # 4) 주요 공시 본문

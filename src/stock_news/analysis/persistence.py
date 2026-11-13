@@ -144,3 +144,35 @@ def render(conn, end: str) -> str:
              f"{', '.join(v[0] for v in CATEGORIES.values())}</sub>")
     L.append("")
     return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- 장중 상한가 패턴 (보조 지표)
+def render_intraday(conn, end: str) -> str:
+    """점수별·재료 유형별 상한가 도달·해제·종가 유지 비율 (누적). 표본이 적어도 그대로 보여 준다."""
+    rows = [dict(r) for r in conn.execute(
+        "SELECT i.*, s.final, s.category FROM intraday_patterns i JOIN scores s "
+        "ON s.date=i.date AND s.stock_code=i.stock_code WHERE i.date <= ? AND s.sentiment='호재'", (end,))]
+    L = ["## 장중 상한가 패턴 (누적, 호재)", ""]
+    if not rows:
+        L.append("아직 기록 없음 — 평일 16:10 반응 기록 때 채점 종목의 1분봉으로 쌓입니다.")
+        return "\n".join(L) + "\n"
+    L += ["| 구분 | 건수 | 상한가 도달 | 해제 후 재도달 | 종가 상한가 | 평균 해제 횟수(도달 종목) |", "|---|---|---|---|---|---|"]
+
+    def line(name: str, g: list[dict]) -> str:
+        hit = [r for r in g if r["hit"]]
+        rate = lambda xs: f"{len(xs) / len(g) * 100:.0f}% ({len(xs)})"  # noqa: E731
+        rel = statistics.fmean([r["releases"] for r in hit]) if hit else None
+        return (f"| {name} | {len(g)} | {rate(hit)} | {rate([r for r in hit if r['rehit']])} | "
+                f"{rate([r for r in g if r['closed_at_limit']])} | {'-' if rel is None else f'{rel:.1f}'} |")
+    for s in (5, 4, 3, 2, 1):
+        g = [r for r in rows if r["final"] == s]
+        if g:
+            L.append(line(f"{s}점", g))
+    by_cat = defaultdict(list)
+    for r in rows:
+        by_cat[r.get("category") or "other"].append(r)
+    for k, g in sorted(by_cat.items(), key=lambda kv: -len(kv[1])):
+        L.append(line(label(k), g))
+    L += ["", "<sub>상한가 = 전일 종가×1.3(호가단위 내림). 해제 = 상한가 도달 뒤 1분봉이 상한가 아래로 내려온 횟수. "
+          "가중치 조절 목표는 여전히 시가→종가 지수 대비 초과수익이고, 이 표는 재료 신뢰도 참고용.</sub>", ""]
+    return "\n".join(L) + "\n"

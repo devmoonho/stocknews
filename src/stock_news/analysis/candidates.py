@@ -9,15 +9,18 @@
 객관 지표(결정적으로 계산, Claude는 그대로 사용):
   - diffusion.score : 확산도(언론사 수) 1~5
   - scale.score     : 재료 규모(공시 수치) 1~5, 수치가 없으면 null
+                      공급계약은 매출(연환산)·시총 대비 중 높은 쪽, 제3자배정 유증은 같은 종목 유입액 합계의 시총 대비
+  - preprice.score  : 선반영(직전 5·20일 상승률, 투자주의 등) 1~5, 일봉이 없으면 null — prices.py
 """
 from __future__ import annotations
 
 import datetime as dt
-import json
 from collections import defaultdict
 
-from ..timewindow import Window
-from .disclosure_parse import parse as parse_disclosure, scale_score
+from .. import prices
+from ..timewindow import Window, is_trading_day, load_holidays
+from . import followup
+from .disclosure_parse import _by_mcap, is_third_party, parse as parse_disclosure, scale_basis, scale_score
 from .matching import StockMatcher, ThemeMatcher, policy_terms, snippet
 
 PRIOR_DAYS = 7               # 신규/기존 재료 판단용으로 과거 며칠을 볼지
@@ -37,16 +40,15 @@ def diffusion_score(offices: int, articles: int) -> int:
     return 1          # 공시만 있고 기사 없음
 
 
-def _market_cap(raw: str | None) -> float | None:
-    try:
-        d = json.loads(raw or "{}")
-        return int(d["listCount"]) * int(d["lastPrice"])
-    except (KeyError, ValueError, TypeError):
-        return None
+def _trading_days(start: str, end: str) -> int:
+    d0, d1 = dt.date.fromisoformat(start), dt.date.fromisoformat(end)
+    hol = load_holidays()
+    return sum(is_trading_day(d0 + dt.timedelta(days=i), hol) for i in range((d1 - d0).days + 1))
 
 
-def build(conn, window: Window) -> dict:
+def build(conn, window: Window, write_followups: bool = False) -> dict:
     s, e = f"{window.start:%Y-%m-%d %H:%M:%S}", f"{window.end:%Y-%m-%d %H:%M:%S}"
+    asof = f"{window.start:%Y-%m-%d}"          # 재료 직전 거래일 — 가격은 이날 종가까지만
     sm, tm = StockMatcher.from_db(conn), ThemeMatcher.from_db(conn)
     stocks = {r["code"]: dict(r) for r in conn.execute(
         "SELECT code, name, market, sector, audit_info, order_warning, is_excluded, exclude_reason, raw FROM stocks")}
@@ -136,13 +138,15 @@ def build(conn, window: Window) -> dict:
         if not (d["body"] or d["confirmed"] or d["signal"] != "neutral"):
             routine += 1                     # 소유상황·대량보유·IR 개최 등 일상 공시는 후보 근거에서 제외
             continue
-        parsed = parse_disclosure(d["report_nm"], d["body"], _market_cap(stocks.get(d["stock_code"], {}).get("raw")))
+        mcap = prices.market_cap(conn, d["stock_code"], stocks.get(d["stock_code"], {}).get("raw"), asof)
+        parsed = parse_disclosure(d["report_nm"], d["body"], mcap)
         per_stock[d["stock_code"]]["disclosures"].append({
             "rcept_no": d["rcept_no"], "report_nm": d["report_nm"], "received_at": d["received_at"] or d["rcept_dt"],
             "signal": d["signal"], "confirmed": bool(d["confirmed"]), "url": d["url"],
             # 정정공시는 변경 후 '총액'이 나오므로 자동 규모 점수를 쓰지 않는다 → 늘어난 금액 기준으로 Claude가 판단
             "figures": parsed,
             "scale_score": None if (parsed or {}).get("is_correction") else scale_score(parsed),
+            "scale_basis": None if (parsed or {}).get("is_correction") else scale_basis(parsed),
             "body_excerpt": (d["body"] or "")[:1200] or None})
 
     # ---------------------------------------------------------------- 과거 언급(신규/기존 재료 판단 보조)
@@ -175,11 +179,37 @@ def build(conn, window: Window) -> dict:
         subst = [x for x in arts if x["in_title"] or x["count_in_text"] >= 2]
         offices = {x["office"] for x in subst}
         title_hits = sum(x["in_title"] for x in arts)
-        scales = [d["scale_score"] for d in ev["disclosures"] if d["scale_score"] is not None]
+        scales = [d["scale_score"] for d in ev["disclosures"]
+                  if d["scale_score"] is not None and not is_third_party(d["figures"])]
+        basis = [d["scale_basis"] for d in ev["disclosures"]
+                 if d["scale_score"] is not None and not is_third_party(d["figures"]) and d["scale_score"] == max(scales)]
+        # 제3자배정 유증(경영권 변경과 같이 나오는 경우가 많음): 같은 종목의 유입액을 합쳐 시총 대비로 한 번만 점수
+        third = [d["figures"] for d in ev["disclosures"] if is_third_party(d["figures"]) and not d["figures"]["is_correction"]
+                 and d["figures"].get("amount")]
+        mcap = prices.market_cap(conn, code, info["raw"], asof)
+        inflow = None
+        if third and mcap:
+            total = sum(f["amount"] for f in third)
+            ratio = round(total / mcap * 100, 2)
+            inflow = {"amount": total, "market_cap_ratio_pct": ratio, "issues": len(third), "score": _by_mcap(ratio)}
+            if not scales or inflow["score"] > max(scales):
+                basis = [f"제3자배정 유증 {len(third)}건 회사 유입 {total / 1e8:,.1f}억 = 시총 대비 {ratio}%"]
+            scales.append(inflow["score"])
+        ctx = prices.context(conn, code, asof)
+        for d in ev["disclosures"]:                 # 자사주: 매수 기간의 하루 평균 매수 가능액 → 거래대금 대비
+            f = d["figures"] or {}
+            if f.get("kind") == "자사주취득" and f.get("amount") and f.get("start") and f.get("end"):
+                days = _trading_days(f["start"], f["end"])
+                if days:
+                    f["trading_days"] = days
+                    f["daily_amount"] = round(f["amount"] / days)
+                    if ctx and ctx.get("avg_value20"):
+                        f["daily_vs_value_pct"] = round(f["daily_amount"] / ctx["avg_value20"] * 100, 1)
         themes = sorted(stock_themes.get(code, []), key=lambda k: not k.startswith("naver"))
         out_stocks.append({
             "code": code, "name": info["name"], "market": info["market"], "sector": info["sector"],
             "warning": None if info["audit_info"] in (None, "정상") else info["audit_info"],
+            "price": {**(ctx or {}), "market_cap": mcap},
             "themes": [theme_info[k]["name"] for k in themes if k in theme_info][:8],
             "objective": {
                 "diffusion": {"articles": len(subst), "offices": len(offices), "title_mentions": title_hits,
@@ -190,6 +220,9 @@ def build(conn, window: Window) -> dict:
                               "score": None if (ev["disclosures"] and not subst)
                               else diffusion_score(len(offices), len(subst))},
                 "scale_score": max(scales) if scales else None,
+                "scale_basis": basis[0] if scales and basis else None,
+                "third_party_inflow": inflow,
+                "preprice": prices.preprice(ctx, info["audit_info"], info["order_warning"]),
             },
             "prior": {"articles_7d": len(prior_mentions.get(code, [])),
                       "article_titles_7d": [p["title"] for p in prior_mentions.get(code, [])][:5],
@@ -239,6 +272,8 @@ def build(conn, window: Window) -> dict:
                         "members": list(mem.values())[:MAX_THEME_MEMBERS], "members_total": len(mem)})
     signals.sort(key=lambda x: (-(x["gov_articles"] > 0), -x["title_mentions"], -x["offices"], -x["articles"]))
 
+    fu = followup.scan(conn, window, write=write_followups)
+
     return {
         "window": {"start": s, "end": e},
         "generated_at": f"{dt.datetime.now():%Y-%m-%d %H:%M:%S}",
@@ -253,4 +288,6 @@ def build(conn, window: Window) -> dict:
         "gov_policy": gov_articles,
         "policy_articles": policy_articles,
         "excluded_mentions": excluded,
+        "followups": fu["events"],            # 다이제스트 G — [F-번호:코드]
+        "followups_pending": fu["pending"],
     }

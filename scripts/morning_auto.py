@@ -58,6 +58,9 @@ SCORING_PROMPT = """오늘 {date} 아침 리포트의 **채점 단계만** 수�
    - 정부 정책뉴스(다이제스트 E)는 모두 검토해 reviewed_policies 에 남긴다.
    - 공시만 있는 종목(확산도 제외)은 "diffusion": null.
    - 항목마다 재료 유형 "category"(contract/earnings/buyback/policy/tech/mna/investment/partnership/other)를 적는다.
+   - 채점표 v2: contract·mna·buyback은 "quality"(재료의 질) 필수 — 다이제스트의 발주처·인수자·자금·매입 방식 수치를 근거로.
+     규모(scale)는 다이제스트의 객관 점수 그대로. "preprice"는 쓰지 않는다(score.py가 채움).
+   - 다이제스트 G(후속 이벤트)도 읽고, 재채점할 것이 있으면 id "F-번호:종목코드"로 넣는다.
    - 기사·공시에 없는 사실을 만들지 않는다. 항목마다 근거 한 줄.
 4. `python3 scripts/score.py --date {date}` 를 실행하고, 오류가 나오면 scores.json 을 고쳐 통과할 때까지 반복한다.
 5. 끝나면 한국어로 한 줄: 호재 몇 종목, 악재 몇 종목, 1위 종목.
@@ -143,7 +146,7 @@ def main() -> int:
         p = run.step("2 수집", [PY, "scripts/collect.py"], ok_codes=(0, 2), timeout=900)
         if p.returncode == 2:
             run.notes.append("수집 경고 있음(리포트 상단 참고)")
-        run.step("3 매칭", [PY, "scripts/match.py"], timeout=300)
+        run.step("3 매칭", [PY, "scripts/match.py"], ok_codes=(0, 2), timeout=600)
 
         if a.skip_claude:
             run.write("채점 단계 생략(--skip-claude)")

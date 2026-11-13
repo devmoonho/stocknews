@@ -62,7 +62,7 @@ def main() -> int:
     # 재료 영향 지속성(유형별·근거별 D0~D+10 경로)을 '항목별 상관' 앞에 넣는다
     from stock_news.analysis import persistence
     persist_md = persistence.render(conn, f"{end}")
-    md = md.replace("## 항목별 상관", persist_md + "\n## 항목별 상관", 1)
+    md = md.replace("## 항목별 상관", persist_md + "\n" + persistence.render_intraday(conn, f"{end}") + "\n## 항목별 상관", 1)
     out_dir = REPORTS_DIR / "weekly"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end}.md"

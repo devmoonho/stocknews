@@ -18,21 +18,72 @@ def _won(v) -> str:
 
 
 def _figures(f: dict | None) -> str:
+    """공시 추출 수치 한 줄 + 재료의 질(quality) 판단 힌트."""
     if not f:
         return ""
-    parts = [f.get("kind", "")]
+    k = f.get("kind", "")
+    parts = [k]
     if f.get("is_correction"):
         parts.append("정정공시")
     if f.get("amount") is not None:
-        parts.append(f"금액 {_won(f['amount'])}")
+        parts.append(("회사 유입 " if k == "유상증자" else "금액 ") + _won(f["amount"]))
     if f.get("revenue_ratio_pct") is not None:
         parts.append(f"매출대비 {f['revenue_ratio_pct']}%")
+    if f.get("years") and f["years"] > 1:
+        parts.append(f"계약 {f['years']}년({f.get('start')}~{f.get('end')}) → 연환산 매출대비 {f.get('annual_revenue_ratio_pct')}%")
     if f.get("market_cap_ratio_pct") is not None:
         parts.append(f"시총대비 {f['market_cap_ratio_pct']}%")
     if f.get("counterparty"):
-        parts.append(f"상대 {f['counterparty']}")
-    if f.get("method"):
+        parts.append(f"상대 {f['counterparty']}[{f.get('counterparty_type') or '-'}]")
+    if f.get("contract_name"):
+        parts.append(f"계약명 {f['contract_name'][:30]}")
+    if f.get("advance_payment") is not None:
+        parts.append("선급금 " + ("있음" if f["advance_payment"] else "없음"))
+    if k in ("자사주취득", "자사주소각"):
+        if f.get("method"):
+            parts.append(f"방식 {f['method']}")
+        parts.append(f"소각 {f.get('burn') or '없음'}")
+        if f.get("trading_days"):
+            dv = f" = 20일 평균 거래대금의 {f['daily_vs_value_pct']}%" if f.get("daily_vs_value_pct") is not None else ""
+            parts.append(f"{f['start']}~{f['end']} {f['trading_days']}거래일, 하루 약 {_won(f['daily_amount'])}{dv}")
+    elif f.get("method"):
         parts.append(f"방식 {f['method']}")
+    if k == "유상증자":
+        if f.get("funds"):
+            parts.append("용도 " + ", ".join(f"{n} {_won(v)}" for n, v in f["funds"].items()))
+        if f.get("discount_pct") is not None:
+            parts.append(f"발행가 {f['issue_price']:,.0f}원(기준주가 대비 {f['discount_pct']:+}%)"
+                         if f.get("issue_price") else f"할인율 {f['discount_pct']}%")
+        if f.get("dilution_pct") is not None:
+            parts.append(f"신주 {f['dilution_pct']}%(기존 주식수 대비)")
+        if f.get("payment_date"):
+            parts.append(f"납입일 {f['payment_date']}")
+        parts.append(f"보호예수 {f.get('lockup') or '언급 없음'}")
+        if f.get("allottee"):
+            fund = "[투자조합]" if f.get("allottee_is_fund") and "투자조합" not in f["allottee"] else ""
+            parts.append(f"배정 {f['allottee']}{fund}(관계 {f.get('allottee_relation') or '-'}"
+                         f", 조달 {f.get('allottee_funding') or '-'})")
+        if f.get("third_party_securities"):
+            parts.append("⚑타법인증권 취득 목적" + ("(대상 미확정)" if f.get("target_undecided") else "")
+                         + " — 대상 회사·인수자 특수관계 확인 필요")
+    if k == "경영권변경":
+        if f.get("transfer_amount") is not None:
+            parts.append(f"양수도 대금 {_won(f['transfer_amount'])}(기존 대주주에게 — 규모 제외)")
+        acq = f.get("acquirer")
+        if acq:
+            fin = f.get("acquirer_fin_mil") or {}
+            fin_s = ", ".join(f"{n} {fin[key]:,.0f}" for key, n in
+                              (("capital", "자본금"), ("equity", "자본총계"), ("revenue", "매출"), ("net_income", "순손익"))
+                              if key in fin)
+            parts.append(f"양수인 {acq}" + ("[투자조합]" if f.get("acquirer_is_fund") else "")
+                         + (f" 설립 {f['acquirer_founded']}" if f.get("acquirer_founded") else "")
+                         + (f", 최대주주 {f['acquirer_owner']} {f.get('acquirer_owner_pct') or ''}%" if f.get("acquirer_owner") else "")
+                         + (f", 재무(백만원) {fin_s}" if fin_s else "")
+                         + (" ⚑자본잠식" if fin.get("equity") is not None and fin["equity"] < 0 else ""))
+        if f.get("acquirer_stake_pct"):
+            parts.append(f"거래 후 지분 {f['acquirer_stake_pct']}%")
+        if f.get("closing_date"):
+            parts.append(f"거래종결 {f['closing_date']}")
     if f.get("note"):
         parts.append(f["note"])
     return " · ".join(p for p in parts if p)
@@ -57,9 +108,14 @@ def render(c: dict) -> str:
         extra = f" ⚠{s['warning']}" if s.get("warning") else ""
         diff = ("- 객관: 확산도 제외(공시만, 기사 없음 → diffusion null)" if d["score"] is None else
                 f"- 객관: 확산도 {d['score']}점(기사 {d['articles']}·언론사 {d['offices']}·제목 {d['title_mentions']})")
+        scale = (f"규모 {o['scale_score']}점({o.get('scale_basis') or '공시 수치'})" if o['scale_score'] is not None
+                 else "규모 판단필요")
+        pp = o.get("preprice")
+        pre = f"선반영 {pp['score']}점({pp['reason'].replace(' — 객관 점수', '')})" if pp else "선반영 데이터 없음"
+        pr = s.get("price") or {}
+        cap = f" · 시총 {_won(pr['market_cap'])}" if pr.get("market_cap") else ""
         return (f"### [S-{s['code']}] {s['name']} ({s['market']}, {s.get('sector') or '-'}){extra}\n"
-                + diff +
-                f" · 규모 {o['scale_score'] if o['scale_score'] is not None else '판단필요'}"
+                + diff + f" · {scale}\n- 객관: {pre}{cap}"
                 f" · 최근7일 제목언급 {s['prior']['articles_7d']} · 최근30일 공시 {len(s['prior']['disclosures_30d'])}\n"
                 f"- 테마: {', '.join(s['themes'][:6]) or '-'}")
 
@@ -69,7 +125,8 @@ def render(c: dict) -> str:
         for d in s["disclosures"]:
             flag = {"buy": "▲", "sell": "▼"}.get(d["signal"], "") + ("*" if d["confirmed"] else "")
             L.append(f"- 공시 {d['received_at']} {flag} {d['report_nm']} — {_figures(d['figures'])}")
-            if d.get("body_excerpt") and not (d["figures"] and d["figures"].get("amount")):
+            if d.get("body_excerpt") and not (d["figures"] and (d["figures"].get("amount")
+                                                                 or d["figures"].get("kind") == "경영권변경")):
                 L.append(f"  > {d['body_excerpt'][:500].replace(chr(10), ' / ')}")
         if s["prior"]["disclosures_30d"]:
             L.append("- 최근30일 공시: " + "; ".join(f"{p['rcept_dt']} {p['report_nm'][:30]}"
@@ -129,4 +186,22 @@ def render(c: dict) -> str:
     L.append(f"## F. 기타 정책 관련 기사 ({len(c['policy_articles'])})")
     for p in c["policy_articles"]:
         L.append(f"- {p['published_at'][5:16]} {p['office']}: {p['title']} [{', '.join(p['policy_terms'][:4])}]")
+    L.append("")
+    fu = c.get("followups", [])
+    L.append(f"## G. 후속 이벤트 ({len(fu)}) — 이전에 채점한 재료의 일정·관련 공시. [F-번호:종목코드]로 재채점(완료=확정, 철회·미이행=악재)")
+    for i, f in enumerate(fu, 1):
+        L.append(f"### [F-{i}:{f['stock_code']}] {f['stock_name']} · {f['kind']} 예정 {f['due_date']} · "
+                 f"상태 {f['status']} → {f['new_status']}" + (" ⚠예정일 지남, 완료 공시 없음" if f.get("overdue") and not f["events"] else ""))
+        L.append(f"- 원 재료: {f['origin_date']} 채점 · 공시 {f['origin_rcept']} · {f['detail']}")
+        for ev in f["events"]:
+            extra = " · 담보·질권 언급" if ev.get("pledge") else ""
+            L.append(f"- [{ev['event']}] {ev['received_at']} {ev['report_nm']} (rcept:{ev['rcept_no']}){extra}")
+            if ev.get("body_excerpt"):
+                L.append(f"  > {ev['body_excerpt'][:300].replace(chr(10), ' / ')}")
+        L.append("")
+    pend = c.get("followups_pending", [])
+    if pend:
+        L.append("- 추적 중: " + "; ".join(f"{p['stock_name']} {p['kind']} {p['due_date']}({p['status']})" for p in pend[:12]))
+        L.append("")
+
     return "\n".join(L) + "\n"

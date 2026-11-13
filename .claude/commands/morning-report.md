@@ -12,6 +12,8 @@ $ARGUMENTS 에 날짜/시간대가 있으면(예: `--since "2026-11-11 15:30" --
 3. `python3 scripts/match.py $ARGUMENTS`
 4. `config/scoring_rubric.md`를 읽고, `data/work/<날짜>/candidates_digest.md`를 읽어 채점한다.
    다이제스트 E(정부 정책뉴스)는 하나씩 모두 검토해 수혜 종목(P-번호:코드)을 고르거나, 고르지 않은 이유를 reviewed_policies에 적는다.
+   다이제스트 G(후속 이벤트)도 확인해 재채점할 것은 F-번호:코드로 넣는다.
+   contract·mna·buyback은 `quality`(재료의 질) 필수, `preprice`는 쓰지 않는다(score.py가 계산) — 채점표 v2.
    필요한 근거는 candidates.json·SQLite에서 확인한다. 결과를 `data/work/<날짜>/scores.json`에 쓴다.
 5. `python3 scripts/score.py --date <날짜>` — 오류가 없을 때까지 scores.json을 고쳐 다시 실행한다.
 6. `python3 scripts/report.py --date <날짜>` → `reports/<날짜>.md`

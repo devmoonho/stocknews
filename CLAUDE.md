@@ -35,7 +35,8 @@
 
 ## 자동 실행 (미니PC cron)
 - 평일 07:00 `scripts/morning_auto.py` — 1~8단계 전체(채점은 `claude -p`). 실패 시 텔레그램 알림. 로그 `data/logs/`
-- 평일 16:10 `scripts/track_prices.py` — 채점 종목·비교 기준 종목의 주가 반응 기록(`price_reactions`)
+- 평일 16:10 `scripts/track_prices.py` — 채점 종목·비교 기준 종목의 주가 반응 기록(`price_reactions`),
+  장중 상한가 도달·해제·재도달(`intraday_patterns`, 1분봉)
 - 토요일 08:00 `scripts/weekly_review.py` — 점수별·근거별 실제 반응 집계, **재료 유형·근거별 영향 지속성(D0~D+10 경로, 정점·반감일)**,
   가중치 재귀 조절(`config/weights.json`,
   `weight_history`), 주간 리포트 `reports/weekly/날짜.md` + 메일·텔레그램
@@ -53,6 +54,11 @@
 - 정부 정책뉴스(다이제스트 E)는 **하나씩 모두 읽고** 산업·예산과 직결되는 정책만 수혜 종목을 고른다.
   id는 `P-번호:종목코드`, `policy` 점수 필수. 정책 본문은 DB `articles`(source='korea_policy')에 있다.
   종목을 고르지 않은 정책도 리포트에 "검토한 정책" 한 줄로 남길 수 있게 scores.json의 `reviewed_policies`에 적는다.
+- **채점표 v2(2026-11-13)**: 항목 7개. `quality`(재료의 질)는 contract·mna·buyback에 필수 — 다이제스트 A의
+  발주처 유형·인수자 재무·조달방법·보호예수·신탁/직접·소각 수치를 근거로. `preprice`(선반영)는 **쓰지 않는다**(score.py가 계산).
+  규모는 매출(연환산)·시총 대비 중 높은 쪽, 제3자배정 유증은 회사 유입액 합계 — 다이제스트 객관 점수 그대로.
+- 후속 이벤트(다이제스트 G): 이전 채점 재료의 유증 납입·거래종결 일정과 새 공시. 재채점은 id `F-번호:종목코드`.
+  완료=확정, 정정·연기=신규성 낮게, 철회·미이행=악재. 일정은 score.py가 `followups`에 자동 등록.
 - 악재는 `sentiment: "악재"`로 따로 기록(점수 없음) — 리포트의 주의 종목.
 - 항목마다 재료 유형 `category`를 적는다(contract 공급계약·수주 / earnings 실적 / buyback 자사주·주주환원 / policy 정부 정책 /
   tech 기술·특허·허가 / mna M&A·지분·경영권 / investment 시설투자·증설 / partnership 협력·MOU / other). 주간 지속성 분석 단위다.
@@ -60,7 +66,7 @@
 
 ## 데이터 위치
 - `data/stock_news.db` — articles, disclosures, stocks, themes, theme_stocks, scores, collect_runs,
-  price_daily, index_daily, price_reactions, weight_history
+  price_daily, index_daily, price_reactions, price_paths, intraday_patterns, followups, weight_history
   - 호재 여부와 상관없이 수집한 것은 전부 저장(백테스트용). 지우지 않는다.
 - `data/work/YYYY-MM-DD/` — 그날의 덤프·후보·채점 파일
 - `reports/YYYY-MM-DD.md` — 최종 리포트

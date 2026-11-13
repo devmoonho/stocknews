@@ -24,7 +24,8 @@ FLOOR = 0.05
 ALPHA = 0.3
 MAX_STEP = 0.05
 MIN_W, MAX_W = 0.05, 0.40
-LABELS = {"scale": "재료 규모", "exclusivity": "최초/독점", "novelty": "신규성", "policy": "정책 수혜", "diffusion": "확산도"}
+LABELS = {"scale": "재료 규모", "exclusivity": "최초/독점", "novelty": "신규성", "policy": "정책 수혜", "diffusion": "확산도",
+          "quality": "재료의 질", "preprice": "선반영(덜 오름)"}
 
 
 def pct(v, digits: int = 2) -> str:

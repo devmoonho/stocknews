@@ -1,0 +1,22 @@
+{
+ "kumho_contract": {
+  "rcept_no": "20261112801117",
+  "report_nm": "단일판매ㆍ공급계약체결"
+ },
+ "kc_trust": {
+  "rcept_no": "20261112000473",
+  "report_nm": "주요사항보고서(자기주식취득신탁계약체결결정)"
+ },
+ "vaiv_rights_acquirer": {
+  "rcept_no": "20261112000633",
+  "report_nm": "주요사항보고서(유상증자결정)"
+ },
+ "vaiv_rights_fund": {
+  "rcept_no": "20261112000665",
+  "report_nm": "주요사항보고서(유상증자결정)"
+ },
+ "vaiv_control": {
+  "rcept_no": "20261112900980",
+  "report_nm": "경영권변경등에관한계약체결"
+ }
+}
