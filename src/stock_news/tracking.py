@@ -3,13 +3,16 @@
 D0 = 리포트 날짜(아침에 재료를 보고 장에 들어가는 날).
   gap_pct   = 시가 / 전일 종가 - 1          (재료가 시초가에 얼마나 반영됐나)
   oh_pct    = 고가 / 시가 - 1               (시가 매수 시 장중 최대 상승 여지)
-  oc_pct    = 종가 / 시가 - 1               (시가 매수 → 종가)
+  oc_pct    = KRX 종가 / 시가 - 1           (시가 매수 → 종가; KRX 종가 = 다음 거래일 기준가, 없으면 통합 종가)
+  키움 일봉 종가는 KRX+NXT 통합(애프터마켓 20:00까지). gap·상한가는 KRX 기준가(base_price) 기준.
+  open_limit = 시가가 상한가(매수 불가) → 주간 리뷰의 시가→종가 목표에서 제외
   close_pct = 종가 / 전일 종가 - 1
   oc_excess = oc_pct - 같은 시장 지수 oc_pct (기본 목표 지표: 시장 전체 움직임을 뺀 것)
   ret_Nd    = D+N 종가 / D0 시가 - 1         (N = 1, 3, 5 거래일)
   price_paths: D0 ~ D+10 매일의 누적 수익률·지수 대비 초과·최고가 — 재료 영향이 며칠 가는지(지속성) 분석용
   intraday_patterns: D0 1분봉으로 상한가 도달·해제 횟수·재도달·종가 유지 (재료 신뢰도 보조 지표)
 비교 기준(control): 그날 후보였지만 채점하지 않은 종목 일부.
+테마 비교(theme_peer): 테마·정책에서 고른 종목과 같은 테마의 안 고른 상위 종목 — 대장 후보 기준 검증용.
 """
 from __future__ import annotations
 
@@ -18,11 +21,12 @@ import json
 
 from .config import WORK_DIR
 from .master.kiwoom_client import KiwoomClient
-from .report import basis_tags
+from .report import basis_tags, theme_bundles
 from .timewindow import now_kst
 
 INDEX = {"KOSPI": "001", "KOSDAQ": "101"}
 CONTROL_PER_DAY = 20
+THEME_PEERS = 10           # 테마 묶음마다 안 고른 상위 구성종목(연관도 순) 비교 기록
 HORIZONS = (1, 3, 5)
 PATH_DAYS = 10            # 지속성 분석용 경로: D0 ~ D+10 거래일
 
@@ -38,6 +42,13 @@ def _iso(d: str) -> str:
     return f"{d[:4]}-{d[4:6]}-{d[6:8]}"
 
 
+def _base_price(r: dict) -> float | None:
+    """KRX 기준가(= 전일 KRX 종가). 키움 일봉 종가는 KRX+NXT 통합(애프터마켓 20:00까지)이라 전일 종가와 다를 수 있다.
+    '전일 대비'(pred_pre)는 KRX 기준가 대비라서 종가 − 전일 대비 = 기준가."""
+    cur, chg = _num(r.get("cur_prc")), _signed(r.get("pred_pre"))
+    return None if not cur or chg is None else cur - chg
+
+
 def _partial_day() -> str | None:
     """장 마감(15:40) 전이면 오늘 날짜 — 그날 일봉은 아직 미완성."""
     now = now_kst()
@@ -50,16 +61,20 @@ class PriceStore:
         self._fresh: set[str] = set()
 
     def ensure_stock(self, code: str, need_until: str) -> None:
-        last = self.conn.execute("SELECT MAX(dt) FROM price_daily WHERE code=?", (code,)).fetchone()[0]
-        if code in self._fresh or (last and last >= need_until):
+        last = self.conn.execute("SELECT dt, base_price FROM price_daily WHERE code=? ORDER BY dt DESC LIMIT 1",
+                                 (code,)).fetchone()
+        # base_price(KRX 기준가)가 없는 옛 캐시는 한 번 다시 받는다
+        if code in self._fresh or (last and last[0] >= need_until and last[1] is not None):
             return
         body, _, _ = self.client.call("ka10081", "/api/dostk/chart",
                                       {"stk_cd": code, "base_dt": f"{now_kst():%Y%m%d}", "upd_stkpc_tp": "1"})
         partial = _partial_day()
         rows = [(code, _iso(r["dt"]), _num(r.get("open_pric")), _num(r.get("high_pric")), _num(r.get("low_pric")),
-                 _num(r.get("cur_prc")), _num(r.get("trde_qty"))) for r in body.get("stk_dt_pole_chart_qry") or []
+                 _num(r.get("cur_prc")), _num(r.get("trde_qty")), _base_price(r))
+                for r in body.get("stk_dt_pole_chart_qry") or []
                 if r.get("dt") and _iso(r["dt"]) != partial]        # 장 마감 전 당일 봉은 미완성 → 저장 안 함
-        self.conn.executemany("INSERT OR REPLACE INTO price_daily VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+        self.conn.executemany("INSERT OR REPLACE INTO price_daily (code, dt, open, high, low, close, volume, base_price) "
+                              "VALUES (?, ?, ?, ?, ?, ?, ?, ?)", rows)
         self._fresh.add(code)
 
     def ensure_index(self) -> None:
@@ -171,6 +186,21 @@ def _targets(conn, date: str) -> list[dict]:
     cpath = WORK_DIR / date / "candidates.json"
     if cpath.exists():
         cands = json.loads(cpath.read_text(encoding="utf-8"))
+        # 테마 묶음: 고른 종목에 테마·대장 순위를 붙이고, 같은 테마의 안 고른 상위 종목을 비교 종목(theme_peer)으로
+        by_code = {t["code"]: t for t in out}
+        for b in theme_bundles({"items": items}, cands):
+            peers = 0
+            for m in b["ranked"]:
+                if m["code"] in by_code:
+                    by_code[m["code"]].setdefault("theme", b["theme"])
+                    by_code[m["code"]].setdefault("leader_rank", m["rank"])
+                elif m["code"] not in seen and peers < THEME_PEERS:
+                    t = {"code": m["code"], "grp": "theme_peer", "sentiment": None, "final": None, "final_raw": None,
+                         "basis": "테마", "theme": b["theme"], "leader_rank": m["rank"]}
+                    out.append(t)
+                    by_code[m["code"]] = t
+                    seen.add(m["code"])
+                    peers += 1
         n = 0
         for s in cands.get("stocks", []):          # 근거가 강한 순으로 정렬돼 있음
             if s["code"] in seen or n >= CONTROL_PER_DAY:
@@ -237,8 +267,13 @@ def track(conn, client: KiwoomClient, dates: list[str] | None = None, log=print)
             for n in HORIZONS:
                 j = i + n
                 rets[n] = (ser[j]["close"] / d0["open"] - 1) if j < len(ser) and ser[j]["dt"] <= today else None
-            oc = d0["close"] / d0["open"] - 1
+            # KRX 기준: 전일 KRX 종가 = D0 기준가, D0 KRX 종가 = D+1 기준가(아직 없으면 통합 종가)
+            krx_prev = d0.get("base_price") or prev["close"]
+            nxt = ser[i + 1] if i + 1 < len(ser) and ser[i + 1]["dt"] <= today else None
+            krx_close = (nxt or {}).get("base_price") or d0["close"]
+            oc = krx_close / d0["open"] - 1
             close_pct = d0["close"] / prev["close"] - 1
+            krx_close_pct = krx_close / krx_prev - 1
             idx_oc = (ix["close"] / ix["open"] - 1) if ix and ix["open"] else None
             idx_close = (ix["close"] / ix_prev["close"] - 1) if ix and ix_prev else None
             row = {
@@ -247,7 +282,12 @@ def track(conn, client: KiwoomClient, dates: list[str] | None = None, log=print)
                 "prev_close": prev["close"], "open": d0["open"], "high": d0["high"], "low": d0["low"],
                 "close": d0["close"], "volume": d0["volume"],
                 "vol_ratio20": (d0["volume"] / (sum(vols) / len(vols))) if vols and d0["volume"] else None,
-                "gap_pct": d0["open"] / prev["close"] - 1, "oh_pct": d0["high"] / d0["open"] - 1,
+                "gap_pct": d0["open"] / krx_prev - 1, "oh_pct": d0["high"] / d0["open"] - 1,
+                "krx_prev_close": krx_prev,
+                "after_hours_pct": prev["close"] / krx_prev - 1 if d0.get("base_price") else None,
+                "open_limit": int(d0["open"] >= limit_up(krx_prev)),
+                "krx_close_excess": krx_close_pct - idx_close if idx_close is not None else None,
+                "theme": t.get("theme"), "leader_rank": t.get("leader_rank"),
                 "oc_pct": oc, "close_pct": close_pct, "idx_oc_pct": idx_oc, "idx_close_pct": idx_close,
                 "oc_excess": oc - idx_oc if idx_oc is not None else None,
                 "close_excess": close_pct - idx_close if idx_close is not None else None,

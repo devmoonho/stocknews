@@ -18,7 +18,8 @@ from .analysis.scoring import WEIGHTS
 
 FACTOR_LABELS = {"scale": "재료 규모", "exclusivity": "최초/독점", "novelty": "신규성",
                  "policy": "정책 수혜", "diffusion": "확산도",
-                 "quality": "재료의 질", "preprice": "선반영(덜 오름)"}
+                 "quality": "재료의 질", "preprice": "선반영(덜 오름)",
+          "theme_cluster": "테마 결집도", "leader": "테마 대장"}
 STARS = {5: "★★★★★", 4: "★★★★☆", 3: "★★★☆☆", 2: "★★☆☆☆", 1: "★☆☆☆☆"}
 
 
@@ -116,6 +117,41 @@ def figures_text(f: dict | None) -> str:
     if f.get("note"):
         parts.append(f["note"])
     return " · ".join(parts) or "-"
+
+
+def theme_bundles(scored: dict, candidates: dict) -> list[dict]:
+    """테마 신호(T-)·정부 정책(P-)에서 고른 종목을 테마별로 묶는다: 결집도, 대장 후보, 고른 종목, 안 고른 상위 종목."""
+    bundles: dict[str, dict] = {}
+    sigs, govs = candidates.get("theme_signals", []), candidates.get("gov_policy", [])
+    for it in scored.get("items", []):
+        iid = str(it.get("id", ""))
+        if it.get("sentiment") != "호재" or not iid.startswith(("T-", "P-")):
+            continue
+        try:
+            n = int(iid[2:].split(":")[0]) - 1
+            if iid.startswith("T-"):
+                sig = sigs[n]
+                theme, cluster, ranked = " / ".join(sig["themes"]), sig.get("cluster"), \
+                    [m for m in sig.get("members", []) if m.get("rank")]
+            else:
+                lr = govs[n].get("leader_rank", {}).get(it["code"])
+                if not lr:
+                    continue
+                theme, cluster = lr["theme"], lr["cluster"]
+                ranked = next((ld["top"] for ld in govs[n].get("leaders", []) if ld["theme"] == theme), [])
+        except (ValueError, IndexError, KeyError):
+            continue
+        b = bundles.setdefault(theme, {"theme": theme, "cluster": cluster, "ranked": ranked, "picked": []})
+        b["picked"].append(it)
+    out = []
+    for b in bundles.values():
+        picked = {it["code"] for it in b["picked"]}
+        b["leaders"] = [m for m in b["ranked"] if m["rank"] and m["rank"] <= 2]
+        b["others"] = [m for m in b["ranked"] if m["code"] not in picked and (m["rank"] or 99) > 2][:4]
+        b["picked"].sort(key=lambda it: -(it.get("final_raw") or 0))
+        out.append(b)
+    out.sort(key=lambda b: -max(it.get("final_raw") or 0 for it in b["picked"]))
+    return out
 
 
 def collect_status(conn, window: dict) -> tuple[list[dict], list[str]]:
@@ -216,6 +252,25 @@ def render(conn, scored: dict, candidates: dict) -> str:
     else:
         L.append("해당 없음")
     L.append("")
+
+    # ------------------------------------------------------------ 테마 묶음
+    bundles = theme_bundles(scored, candidates)
+    if bundles:
+        L.append(f"## 테마 묶음 ({len(bundles)})")
+        L.append("")
+        L.append("| 테마 | 결집도 | 대장 후보(연관도 1·2위) | 고른 종목 | 안 고른 상위 종목 |")
+        L.append("|---|---|---|---|---|")
+        for b in bundles:
+            picked = {it["code"] for it in b["picked"]}
+            lead = ", ".join(f"{m['rank']}위 {m['name']}" + (" ✔" if m["code"] in picked else "") for m in b["leaders"]) or "-"
+            chosen = ", ".join(f"{it['name']}({it['final']}점)" for it in b["picked"])
+            others = ", ".join(m["name"] for m in b["others"]) or "-"
+            cl = (b["cluster"] or {}).get("score", "-")
+            L.append(f"| {_md(b['theme'])} | {cl}점 | {_md(lead)} | {_md(chosen)} | {_md(others)} |")
+        L.append("")
+        L.append("<sub>대장 후보 = 재료 본문 핵심 단어와 테마 편입 사유가 겹치는 정도(드문 단어 가중) 순위. ✔ = 채점한 종목. "
+                 "안 고른 상위 종목은 비교 종목으로 주가 반응을 기록한다.</sub>")
+        L.append("")
 
     # ------------------------------------------------------------ 상세
     L.append("## 종목별 상세")

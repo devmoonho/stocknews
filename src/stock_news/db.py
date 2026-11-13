@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS scores (           -- 날짜별 채점 결과 (백테
 CREATE TABLE IF NOT EXISTS price_daily (       -- 일봉 캐시 (키움 ka10081, 수정주가)
     code TEXT NOT NULL, dt TEXT NOT NULL,       -- dt: YYYY-MM-DD
     open REAL, high REAL, low REAL, close REAL, volume REAL,
+    base_price REAL,                            -- KRX 기준가 = 전일 KRX 종가 (close는 KRX+NXT 통합 종가)
     PRIMARY KEY (code, dt)
 );
 CREATE TABLE IF NOT EXISTS index_daily (       -- 지수 일봉 (키움 ka20006) 001 코스피 · 101 코스닥
@@ -130,6 +131,12 @@ CREATE TABLE IF NOT EXISTS price_reactions (   -- 리포트 날짜(D0)의 주가
     ret_1d REAL, ret_3d REAL, ret_5d REAL,  -- D0 시가 매수 → D+N 종가
     complete      INTEGER DEFAULT 0,        -- ret_5d까지 채워졌으면 1
     updated_at    TEXT,
+    open_limit    INTEGER,                  -- 시가가 상한가(매수 불가) → 시가→종가 목표에서 제외
+    after_hours_pct REAL,                   -- 전일 NXT 애프터마켓 반응: 통합 종가 / KRX 종가 − 1
+    krx_close_excess REAL,                  -- KRX 기준가 대비 종가 수익률 − 지수 (보조 목표)
+    krx_prev_close REAL,                    -- 전일 KRX 종가 (= D0 기준가)
+    theme         TEXT,                     -- theme_peer: 어느 테마의 비교 종목인지
+    leader_rank   INTEGER,                  -- 테마 안 연관도 순위(대장 후보 1·2)
     PRIMARY KEY (date, stock_code)
 );
 CREATE TABLE IF NOT EXISTS price_paths (       -- D0~D+10 날짜별 누적 경로 — 재료 영향 지속성 분석
@@ -173,6 +180,10 @@ CREATE TABLE IF NOT EXISTS intraday_patterns ( -- D0 장중 상한가 패턴 (1�
     PRIMARY KEY (date, stock_code)
 );
 
+CREATE TABLE IF NOT EXISTS factor_corr_history (  -- 주간 리뷰의 항목별 상관 — 가중치 0/복귀 규칙(연속 주 판단)
+    week_end TEXT NOT NULL, target TEXT NOT NULL, factor TEXT NOT NULL, n INTEGER, rho REAL,
+    PRIMARY KEY (week_end, target, factor)
+);
 CREATE TABLE IF NOT EXISTS weight_history (    -- 주간 가중치 조절 기록
     version       INTEGER PRIMARY KEY,
     applied_at    TEXT, target TEXT, sample_n INTEGER,
@@ -220,6 +231,16 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if cols and "category" not in cols:             # 재료 유형
         conn.execute("ALTER TABLE scores ADD COLUMN category TEXT")
         conn.commit()
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(price_daily)")}
+    if cols and "base_price" not in cols:           # KRX 기준가(전일 KRX 종가) — 종가는 KRX+NXT 통합
+        conn.execute("ALTER TABLE price_daily ADD COLUMN base_price REAL")
+        conn.commit()
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(price_reactions)")}
+    for col, typ in (("open_limit", "INTEGER"), ("after_hours_pct", "REAL"), ("krx_close_excess", "REAL"),
+                     ("theme", "TEXT"), ("leader_rank", "INTEGER"), ("krx_prev_close", "REAL")):
+        if cols and col not in cols:
+            conn.execute(f"ALTER TABLE price_reactions ADD COLUMN {col} {typ}")
+    conn.commit()
     cols = {r[1] for r in conn.execute("PRAGMA table_info(scores)")}
     if cols and "rubric_version" not in cols:       # 어떤 채점표 버전으로 채점했나 (v2: 재료의 질·선반영 추가)
         conn.execute("ALTER TABLE scores ADD COLUMN rubric_version INTEGER")

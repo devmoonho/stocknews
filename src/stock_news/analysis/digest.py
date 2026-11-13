@@ -112,6 +112,9 @@ def render(c: dict) -> str:
                  else "규모 판단필요")
         pp = o.get("preprice")
         pre = f"선반영 {pp['score']}점({pp['reason'].replace(' — 객관 점수', '')})" if pp else "선반영 데이터 없음"
+        tc = o.get("theme_cluster")
+        if tc:
+            pre += f" · 테마 결집도 {tc['score']}점"
         pr = s.get("price") or {}
         cap = f" · 시총 {_won(pr['market_cap'])}" if pr.get("market_cap") else ""
         return (f"### [S-{s['code']}] {s['name']} ({s['market']}, {s.get('sector') or '-'}){extra}\n"
@@ -158,12 +161,18 @@ def render(c: dict) -> str:
         L.append(f"### [T-{i}] {' / '.join(t['themes'])} · 키워드 {', '.join(t['keywords'])}")
         gov = f" · 정부 정책뉴스 {t['gov_articles']}" if t.get("gov_articles") else ""
         L.append(f"- 기사 {t['articles']} · 제목 {t['title_mentions']} · 언론사 {t['offices']}{gov}")
+        if t.get("cluster"):
+            L.append(f"- 객관: 결집도 {t['cluster']['score']}점({t['cluster']['reason'].replace(' — 객관 점수', '')})")
         if t.get("description"):
             L.append(f"- 설명: {t['description'][:200]}")
         for a in t["sample_articles"][:3]:
             tag = "[정부]" if a.get("gov") else ("[제목]" if a["in_title"] else "[본문]")
             L.append(f"- {tag} {a['office']}: {a['title']}")
-        L.append(f"- 구성종목({t['members_total']}): " + ", ".join(f"{m['name']}({m['code']})" for m in t["members"][:25]))
+        top = [m for m in t["members"] if m.get("rank")][:5]
+        if top:
+            L.append("- 대장 후보(편입 사유 연관도 순 — 1위 대장 5점·2위 4점·나머지 3점): " +
+                     "; ".join(f"{m['rank']}위 {m['name']}({m['code']}) [{', '.join(m['matched'][:4])}]" for m in top))
+        L.append(f"- 구성종목({t['members_total']}, 연관도 순): " + ", ".join(f"{m['name']}({m['code']})" for m in t["members"][:25]))
         L.append("")
 
     gov = c.get("gov_policy", [])
@@ -179,6 +188,10 @@ def render(c: dict) -> str:
         if g["summary"]:
             L.append(f"- 요약: {g['summary'][:300]}")
         L.append(f"- 걸린 테마: {', '.join(g['themes'][:10]) or '-'}")
+        for ld in g.get("leaders", []):
+            if ld["top"]:
+                L.append(f"- 대장 후보 [{ld['theme']}] 결집도 {ld['cluster']['score']}점: " +
+                         "; ".join(f"{m['rank']}위 {m['name']}({m['code']}) [{', '.join(m['matched'][:4])}]" for m in ld["top"][:5]))
         if g["stocks"]:
             L.append(f"- 본문 언급 종목: {', '.join(x['name'] + '(' + x['code'] + ')' for x in g['stocks'][:10])}")
         L.append("")

@@ -176,3 +176,33 @@ def render_intraday(conn, end: str) -> str:
     L += ["", "<sub>상한가 = 전일 종가×1.3(호가단위 내림). 해제 = 상한가 도달 뒤 1분봉이 상한가 아래로 내려온 횟수. "
           "가중치 조절 목표는 여전히 시가→종가 지수 대비 초과수익이고, 이 표는 재료 신뢰도 참고용.</sub>", ""]
     return "\n".join(L) + "\n"
+
+
+# ---------------------------------------------------------------- 테마 대장 후보 기준 검증
+def render_leaders(conn, end: str) -> str:
+    """같은 테마 안에서 대장 후보(연관도 1·2위) vs 나머지(고른 종목 + 안 고른 비교 종목)의 D0 반응 (누적)."""
+    rows = [dict(r) for r in conn.execute(
+        "SELECT * FROM price_reactions WHERE theme IS NOT NULL AND date <= ? AND grp IN ('scored','theme_peer')", (end,))]
+    L = ["## 테마 대장 후보 기준 검증 (누적)", ""]
+    if not rows:
+        L.append("아직 기록 없음 — 테마·정책에서 고른 종목이 있는 날, 같은 테마 상위 종목이 비교 종목으로 쌓입니다.")
+        return "\n".join(L) + "\n"
+
+    def stat(g: list[dict], key: str) -> str:
+        v = [r[key] for r in g if r.get(key) is not None]
+        return "-" if not v else f"{statistics.fmean(v) * 100:+.1f}% ({len(v)})"
+    lead = [r for r in rows if r.get("leader_rank") and r["leader_rank"] <= 2]
+    rest = [r for r in rows if not (r.get("leader_rank") and r["leader_rank"] <= 2)]
+    L += ["| 구분 | 건수 | 시초가 갭 | 전일 KRX 종가→종가 (지수 대비) | 시가→종가 (지수 대비, 시가 상한가 제외) | 시가 상한가 |",
+          "|---|---|---|---|---|---|"]
+    for name, g in (("대장 후보(1·2위)", lead), ("나머지", rest),
+                    ("나머지 중 고른 종목", [r for r in rest if r["grp"] == "scored"]),
+                    ("나머지 중 안 고른 종목", [r for r in rest if r["grp"] == "theme_peer"])):
+        if not g:
+            continue
+        oc = [dict(r, oc_excess=None) if r.get("open_limit") else r for r in g]
+        L.append(f"| {name} | {len(g)} | {stat(g, 'gap_pct')} | {stat(g, 'krx_close_excess')} | {stat(oc, 'oc_excess')} | "
+                 f"{sum(bool(r.get('open_limit')) for r in g)} |")
+    L += ["", "<sub>대장 후보 = 재료 본문 핵심 단어와 편입 사유가 겹치는 정도 순위(leader.py). 괄호 = 표본 수. "
+          "대장 후보가 나머지보다 꾸준히 높아야 기준이 맞는 것.</sub>", ""]
+    return "\n".join(L) + "\n"

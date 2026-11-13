@@ -59,7 +59,8 @@ SCORING_PROMPT = """오늘 {date} 아침 리포트의 **채점 단계만** 수�
    - 공시만 있는 종목(확산도 제외)은 "diffusion": null.
    - 항목마다 재료 유형 "category"(contract/earnings/buyback/policy/tech/mna/investment/partnership/other)를 적는다.
    - 채점표 v2: contract·mna·buyback은 "quality"(재료의 질) 필수 — 다이제스트의 발주처·인수자·자금·매입 방식 수치를 근거로.
-     규모(scale)는 다이제스트의 객관 점수 그대로. "preprice"는 쓰지 않는다(score.py가 채움).
+     규모(scale)는 다이제스트의 객관 점수 그대로. "preprice"·"theme_cluster"·"leader"는 쓰지 않는다(score.py가 채움).
+     정책 재료의 규모는 채점표 v3(범주 명시 + 예산) 기준. 다이제스트 D·E의 대장 후보 순위를 참고.
    - 다이제스트 G(후속 이벤트)도 읽고, 재채점할 것이 있으면 id "F-번호:종목코드"로 넣는다.
    - 기사·공시에 없는 사실을 만들지 않는다. 항목마다 근거 한 줄.
 4. `python3 scripts/score.py --date {date}` 를 실행하고, 오류가 나오면 scores.json 을 고쳐 통과할 때까지 반복한다.

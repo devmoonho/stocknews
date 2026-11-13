@@ -2,6 +2,8 @@
 
 일봉은 price_daily(키움 ka10081 캐시). 없으면 ensure_daily()로 받아 둔다(match.py·score.py에서 호출).
 asof = 재료 직전 거래일(수집 시간대 시작일, 보통 전일). 그날 종가까지만 본다(재료 이후 가격은 쓰지 않음).
+키움 일봉 종가는 KRX+NXT 통합(애프터마켓 20:00까지) → asof '종가'에는 저녁 공시에 대한 시간외 반응이 들어 있다.
+KRX 종가는 다음 거래일 행의 base_price(기준가)로 알 수 있다(아침 실행 땐 아직 없음 → 마스터 lastPrice로 대신).
 """
 from __future__ import annotations
 
@@ -10,7 +12,7 @@ import statistics
 
 # 선반영 점수 기준 (채점표 'preprice'와 같게 유지)
 PREPRICE_RULES = "5: 5일 ≤+5% & 20일 ≤+15% · 4: ≤+10% & ≤+30% · 3: ≤+20% & ≤+50% · 2: 그 이상 또는 투자주의·단기과열 · " \
-                 "1: 투자경고·위험 또는 5일 >+30%"
+                 "1: 투자경고·위험 또는 5일 >+30% · 시간외(NXT) +5%↑ 최대 3, +10%↑ 최대 2"
 
 
 def ensure_daily(conn, codes: list[str], asof: str, log=print) -> list[str]:
@@ -37,9 +39,21 @@ def ensure_daily(conn, codes: list[str], asof: str, log=print) -> list[str]:
     return failed
 
 
-def context(conn, code: str, asof: str) -> dict | None:
+def krx_close(conn, code: str, asof: str, raw: str | None = None) -> float | None:
+    """asof의 KRX 종가: 다음 거래일 기준가(base_price) → 없으면(아침 실행) 종목 마스터 lastPrice(전일 KRX 종가)."""
+    r = conn.execute("SELECT base_price FROM price_daily WHERE code=? AND dt>? ORDER BY dt LIMIT 1", (code, asof)).fetchone()
+    if r and r[0]:
+        return r[0]
+    try:
+        return float(int(json.loads(raw or "{}")["lastPrice"])) or None
+    except (KeyError, ValueError, TypeError):
+        return None
+
+
+def context(conn, code: str, asof: str, raw: str | None = None) -> dict | None:
     rows = conn.execute("SELECT dt, close, volume FROM price_daily WHERE code=? AND dt<=? ORDER BY dt DESC LIMIT 21",
                         (code, asof)).fetchall()
+
     rows = [r for r in rows if r[1]]
     if not rows:
         return None
@@ -48,19 +62,22 @@ def context(conn, code: str, asof: str) -> dict | None:
     def ret(n: int) -> float | None:
         return round((close / rows[n][1] - 1) * 100, 1) if len(rows) > n and rows[n][1] else None
     values = [r[1] * r[2] for r in rows[:20] if r[2]]
+    # 통합 종가와 KRX 종가의 차이 = NXT 애프터마켓 반응(저녁 공시 직후 등). asof 행이 그날 것일 때만
+    krx = krx_close(conn, code, asof, raw) if rows[0][0] == asof else None
     return {"asof": rows[0][0], "close": close, "ret5_pct": ret(5), "ret20_pct": ret(20),
-            "avg_value20": round(statistics.fmean(values)) if values else None}
+            "avg_value20": round(statistics.fmean(values)) if values else None,
+            "krx_close": krx, "after_hours_pct": round((close / krx - 1) * 100, 1) if krx else None}
 
 
 def market_cap(conn, code: str, raw: str | None, asof: str | None = None) -> float | None:
-    """상장주식수 × 최근 종가(asof 이전). 일봉이 없으면 종목 마스터의 lastPrice."""
+    """상장주식수 × asof KRX 종가(없으면 그 이전 통합 종가, 그것도 없으면 마스터 lastPrice)."""
     try:
         d = json.loads(raw or "{}")
         shares = int(d["listCount"])
     except (KeyError, ValueError, TypeError):
         return None
-    price = None
-    if asof:
+    price = krx_close(conn, code, asof, raw) if asof else None     # 시간외 반응이 섞이지 않은 KRX 종가
+    if price is None and asof:
         r = conn.execute("SELECT close FROM price_daily WHERE code=? AND dt<=? ORDER BY dt DESC LIMIT 1",
                          (code, asof)).fetchone()
         price = r[0] if r and r[0] else None
@@ -88,7 +105,14 @@ def preprice(ctx: dict | None, audit_info: str | None, order_warning: str | None
         s = 4
     else:
         s = 5
+    ah = ctx.get("after_hours_pct")
+    if ah is not None and ah >= 10:                # 저녁 공시 뒤 NXT 애프터마켓에서 이미 반응
+        s = min(s, 2)
+    elif ah is not None and ah >= 5:
+        s = min(s, 3)
     tags = [f"5일 {r5:+.1f}%", f"20일 {r20:+.1f}%"]
+    if ah is not None and abs(ah) >= 1:
+        tags.append(f"시간외 {ah:+.1f}%")
     if audit != "정상":
         tags.append(audit)
     if str(order_warning or "0") == "3":

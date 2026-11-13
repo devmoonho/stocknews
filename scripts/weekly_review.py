@@ -47,22 +47,27 @@ def main() -> int:
     all_rows = review._rows(conn, None, f"{end}")
     week, cum = review.summarize(week_rows, target), review.summarize(all_rows, target)
     corr = review.factor_corr(all_rows, target)
+    corr2 = review.factor_corr(all_rows, "krx_close_excess")      # 보조 목표(시가 상한가 포함)
     prev, ver = current()
-    new, notes = review.propose(prev, corr, cum["all_good"]["n"])
+    zeroed = set(load().get("zeroed", []))
+    history = review.corr_history(conn, f"{end}", target)
+    new, notes, zeroed_new = review.propose(prev, corr, cum["all_good"]["n"], history, zeroed)
     new_version = None
     if not a.dry_run:
-        new_version = review.apply(conn, new, prev, target, cum["all_good"]["n"], notes)
+        review.save_corr(conn, f"{end}", target, corr)
+        new_version = review.apply(conn, new, prev, target, cum["all_good"]["n"], notes, zeroed_new)
     elif new != prev:
         notes.append("(--dry-run: 실제로 적용하지 않음)")
 
     good = [r for r in week_rows if r["grp"] == "scored" and r["sentiment"] == "호재" and r.get(target) is not None]
     good.sort(key=lambda r: r[target], reverse=True)
     md = review.render(f"{start}", f"{end}", week, cum, corr, target, prev, new, new_version, notes,
-                       good[:5], good[-5:][::-1] if len(good) > 5 else [], ver)
+                       good[:5], good[-5:][::-1] if len(good) > 5 else [], ver, corr2, zeroed_new)
     # 재료 영향 지속성(유형별·근거별 D0~D+10 경로)을 '항목별 상관' 앞에 넣는다
     from stock_news.analysis import persistence
     persist_md = persistence.render(conn, f"{end}")
-    md = md.replace("## 항목별 상관", persist_md + "\n" + persistence.render_intraday(conn, f"{end}") + "\n## 항목별 상관", 1)
+    md = md.replace("## 항목별 상관", persist_md + "\n" + persistence.render_intraday(conn, f"{end}") + "\n"
+                    + persistence.render_leaders(conn, f"{end}") + "\n## 항목별 상관", 1)
     out_dir = REPORTS_DIR / "weekly"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end}.md"

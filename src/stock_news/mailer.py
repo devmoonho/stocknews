@@ -17,6 +17,7 @@ from email.utils import formataddr, formatdate, make_msgid
 
 from .analysis.scoring import WEIGHTS
 from .report import (FACTOR_LABELS, SOURCE_NAMES, basis_tags, collect_status, disclosure_rows, figures_text,
+                     theme_bundles,
                      resolve_sources)
 
 # 색 (밝은 배경 기준 — 대부분 메일 앱의 다크모드는 자동 반전)
@@ -140,6 +141,19 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
         R.append(_table(["종목", "공시", "규모", "접수"], rows, ["26%", "34%", "26%", "14%"]))
         R.append(f'<tr><td style="font-size:11px;color:{MUTED};padding-top:6px;">'
                  f'기사 없이 공시만 있는 종목은 확산도를 빼고 계산</td></tr>')
+
+    # 테마 묶음
+    bundles = theme_bundles(scored, candidates)
+    if bundles:
+        R.append(_h2(f"테마 묶음 ({len(bundles)})"))
+        rows = []
+        for b in bundles:
+            picked = {it["code"] for it in b["picked"]}
+            lead = ", ".join(f"{m['rank']}위 {m['name']}" + (" ✔" if m["code"] in picked else "") for m in b["leaders"]) or "-"
+            rows.append([f"<b>{e(b['theme'])}</b><br>결집도 {(b['cluster'] or {}).get('score', '-')}점", e(lead),
+                         e(", ".join(f"{it['name']}({it['final']}점)" for it in b["picked"])),
+                         e(", ".join(m["name"] for m in b["others"]) or "-")])
+        R.append(_table(["테마", "대장 후보", "고른 종목", "안 고른 상위"], rows, ["28%", "26%", "26%", "20%"]))
 
     # 종목별 상세
     if good:

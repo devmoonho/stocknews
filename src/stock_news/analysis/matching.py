@@ -130,9 +130,13 @@ class ThemeMatcher:
         for line in _read_lines("theme_keyword_block.txt"):
             theme, _, kw = line.rpartition("|")
             blocked.add((theme.strip(), kw.strip()))
+        aliases: dict[str, set[str]] = {}
+        for line in _read_lines("theme_keyword_aliases.txt"):
+            theme, _, kws = line.partition("|")
+            aliases.setdefault(theme.strip(), set()).update(k.strip() for k in kws.split(",") if k.strip())
         mapping: dict[str, set[str]] = {}
         for source, code, name in conn.execute("SELECT source, theme_code, name FROM themes"):
-            for kw in theme_keywords(name, source):
+            for kw in theme_keywords(name, source) | aliases.get(name, set()):
                 if kw in stock_names or (name, kw) in blocked:   # 종목명 조각은 종목 매칭이 맡는다
                     continue
                 mapping.setdefault(kw, set()).add(f"{source}:{code}")

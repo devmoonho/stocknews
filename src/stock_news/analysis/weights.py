@@ -6,7 +6,7 @@ import json
 from ..config import CONFIG_DIR
 
 PATH = CONFIG_DIR / "weights.json"
-FACTORS = ("scale", "exclusivity", "novelty", "policy", "diffusion", "quality", "preprice")
+FACTORS = ("scale", "exclusivity", "novelty", "policy", "diffusion", "quality", "preprice", "theme_cluster", "leader")
 DEFAULT = {"version": 1, "updated": "2026-11-12", "target": "oc_excess",
            "weights": {"scale": 0.30, "exclusivity": 0.15, "novelty": 0.25, "policy": 0.10, "diffusion": 0.20},
            "note": "초기값(채점표 최초 작성)"}

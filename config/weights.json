@@ -1,15 +1,18 @@
 {
- "version": 2,
+ "version": 3,
  "updated": "2026-11-13",
  "target": "oc_excess",
  "weights": {
-  "scale": 0.28,
-  "exclusivity": 0.1,
-  "novelty": 0.22,
+  "scale": 0.26,
+  "exclusivity": 0.09,
+  "novelty": 0.2,
   "policy": 0.08,
-  "diffusion": 0.17,
-  "quality": 0.08,
-  "preprice": 0.07
+  "diffusion": 0.15,
+  "quality": 0.07,
+  "preprice": 0.06,
+  "theme_cluster": 0.05,
+  "leader": 0.04
  },
- "note": "채점표 v2: 재료의 질(quality)·선반영(preprice) 항목 추가, 규모 산식 확장(시총 대비·연환산·신탁·유증 유입)"
+ "note": "채점표 v3: 테마 결집도·테마 대장 항목 추가. 주의 — v2·v3 초기값은 사례 5건(11-12~13)에 맞춘 값이라 과적합 가능성이 있다. 표본이 쌓이면 주간 리뷰가 데이터로 조정한다.",
+ "zeroed": []
 }

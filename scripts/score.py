@@ -48,8 +48,8 @@ def main() -> int:
     failed = prices.ensure_daily(conn, codes, asof, log=lambda m: None)
     if failed:
         print(f"⚠️  일봉 조회 실패 {len(failed)}종목 — 선반영 점수 없이 계산(가중치에서 빠짐): {', '.join(failed[:10])}")
-    info = {r["code"]: r for r in conn.execute("SELECT code, audit_info, order_warning FROM stocks")}
-    pre = {c: prices.preprice(prices.context(conn, c, asof), (info.get(c) or {"audit_info": None})["audit_info"],
+    info = {r["code"]: r for r in conn.execute("SELECT code, audit_info, order_warning, raw FROM stocks")}
+    pre = {c: prices.preprice(prices.context(conn, c, asof, (info.get(c) or {"raw": None})["raw"]), (info.get(c) or {"audit_info": None})["audit_info"],
                               (info.get(c) or {"order_warning": None})["order_warning"]) for c in codes}
 
     items, errors = validate(scores, cands, pre)

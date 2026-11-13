@@ -19,7 +19,7 @@ from collections import defaultdict
 
 from .. import prices
 from ..timewindow import Window, is_trading_day, load_holidays
-from . import followup
+from . import followup, leader as ldr
 from .disclosure_parse import _by_mcap, is_third_party, parse as parse_disclosure, scale_basis, scale_score
 from .matching import StockMatcher, ThemeMatcher, policy_terms, snippet
 
@@ -106,9 +106,11 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
             # 정부 정책뉴스: 키워드와 상관없이 전부 정책 재료 후보. 걸린 테마·종목을 같이 보여준다.
             gov_articles.append({
                 "id": a["id"], "title": title, "dept": a["office_name"], "published_at": a["published_at"],
-                "url": a["url"], "summary": (a["summary"] or "")[:400],
+                "url": a["url"], "summary": (a["summary"] or "")[:400], "_theme_keys": list(art_themes),
                 "themes": sorted({theme_name(k) for k in art_themes if theme_name(k)}),
-                "_title_terms": sorted({t for t in art_themes.values() if t in title}),
+                # 확산도 키워드: 제목 + 요약 첫 문단(부제)에 나온 테마 키워드
+                "_title_terms": sorted({t for t in art_themes.values()
+                                        if t in title or t in (a["summary"] or "")[:200]}),
                 "stocks": [{"code": c, "name": stocks[c]["name"]} for c in seen_codes
                            if c in stocks and not stocks[c]["is_excluded"]]})
             continue
@@ -195,7 +197,7 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
             if not scales or inflow["score"] > max(scales):
                 basis = [f"제3자배정 유증 {len(third)}건 회사 유입 {total / 1e8:,.1f}억 = 시총 대비 {ratio}%"]
             scales.append(inflow["score"])
-        ctx = prices.context(conn, code, asof)
+        ctx = prices.context(conn, code, asof, info["raw"])
         for d in ev["disclosures"]:                 # 자사주: 매수 기간의 하루 평균 매수 가능액 → 거래대금 대비
             f = d["figures"] or {}
             if f.get("kind") == "자사주취득" and f.get("amount") and f.get("start") and f.get("end"):
@@ -264,13 +266,81 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
                     mem[m["stock_code"]] = {"code": m["stock_code"], "name": m["stock_name"],
                                             "reason": (m["reason"] or "")[:160] or None}
         arts = g["arts"]
-        signals.append({"themes": g["themes"], "keywords": list(kws),
+        signals.append({"themes": g["themes"], "keywords": list(kws), "_keys": g["keys"], "_arts": arts,
                         "description": (desc or "")[:300] or None,
                         "articles": len(arts), "title_mentions": g["in_title"], "gov_articles": g["gov"],
                         "offices": len({a["office"] for a in arts}),
                         "sample_articles": sorted(arts, key=lambda a: (not a["gov"], not a["in_title"]))[:5],
                         "members": list(mem.values())[:MAX_THEME_MEMBERS], "members_total": len(mem)})
     signals.sort(key=lambda x: (-(x["gov_articles"] > 0), -x["title_mentions"], -x["offices"], -x["articles"]))
+
+    # ---------------------------------------------------------------- 테마 결집도 · 대장 후보 (leader.py)
+    rel = ldr.Relevance([r[0] for r in conn.execute("SELECT reason FROM theme_stocks WHERE reason IS NOT NULL")])
+    art_by_id = {a["id"]: a for a in articles}
+    with_material = {x["code"] for x in out_stocks
+                     if x["disclosures"] or x["objective"]["diffusion"]["title_mentions"]}
+    cap_cache: dict[str, float | None] = {}
+
+    def member_list(keys: list[str]) -> list[dict]:
+        seen: dict[str, dict] = {}
+        for key in sorted(keys, key=lambda k: not k.startswith("naver")):      # 네이버 편입 사유 우선
+            for m in members.get(key, []):
+                c = m["stock_code"]
+                if c not in candidate_codes:
+                    continue
+                if c not in seen or (not seen[c]["reason"] and m["reason"]):
+                    if c not in cap_cache:
+                        cap_cache[c] = prices.market_cap(conn, c, stocks[c]["raw"], asof)
+                    seen[c] = {"code": c, "name": m["stock_name"], "reason": m["reason"] or None,   # 점수는 전문으로
+                               "n_themes": len(stock_themes.get(c, [])), "market_cap": cap_cache[c]}
+        return list(seen.values())
+
+    def gov_parts(a: dict) -> tuple[str, str]:
+        full = art_by_id.get(a["id"]) or {}
+        return f"{full.get('title', '')}\n{full.get('summary') or ''}", full.get("body") or ""
+
+    for sig in signals:
+        arts = sig.pop("_arts")
+        sig["_art_ids"] = {a["id"] for a in arts}
+        head = "\n".join(gov_parts(a)[0] if a.get("gov") else a["title"] for a in arts)
+        body = "\n".join(gov_parts(a)[1] if a.get("gov") else a.get("snippet", "") for a in arts)
+        ranked = ldr.rank_members(rel, head, body, member_list(sig["_keys"]))
+        sig["members"] = [{**{k: m[k] for k in ("code", "name", "rank", "relevance", "matched")},
+                           "reason": (m["reason"] or "")[:160] or None} for m in ranked[:MAX_THEME_MEMBERS]]
+        sig["members_total"] = len(ranked)
+        sig["leader_rank"] = {m["code"]: m["rank"] for m in ranked}
+        mat_n = sum(m["code"] in with_material for m in ranked)
+        pts = ldr.cluster_points(sig["gov_articles"], sig["title_mentions"], sig["offices"], mat_n)
+        sig["cluster"] = {"score": ldr.cluster_score(pts), "points": pts,
+                          "reason": f"정부 {sig['gov_articles']}×2 · 제목기사 {sig['title_mentions']} · 언론사 {sig['offices']} · "
+                                    f"재료 있는 구성종목 {mat_n} = {pts} — 객관 점수"}
+    for g in gov_articles:
+        keys = set(g.pop("_theme_keys"))
+        linked = [sig for sig in signals if keys & set(sig["_keys"])]
+        g["cluster"] = max((sig["cluster"] for sig in linked), key=lambda c: c["points"], default=None)
+        head, body = gov_parts(g)
+        g["leaders"], g["leader_rank"] = [], {}
+        for sig in linked:                       # 정책 본문으로 테마별 순위를 다시 매긴다
+            ranked = ldr.rank_members(rel, head, body, member_list(sig["_keys"]))
+            theme = " / ".join(sig["themes"])
+            g["leaders"].append({"theme": theme, "members_total": len(ranked), "cluster": sig["cluster"],
+                                 "top": [{k: m[k] for k in ("code", "name", "rank", "relevance", "matched")}
+                                         for m in ranked[:12] if m["rank"]]})
+            for m in ranked:                     # 종목마다 가장 높은 순위가 나온 테마(그 테마의 결집도를 쓴다)
+                cur = g["leader_rank"].get(m["code"])
+                if cur is None or (m["rank"] or 999) < (cur["rank"] or 999):
+                    g["leader_rank"][m["code"]] = {"rank": m["rank"], "theme": theme, "cluster": sig["cluster"]}
+    for x in out_stocks:
+        # 종목 근거(S-): 그 종목이 속한 테마 신호 중, 그 종목을 다룬 기사가 신호 기사에 들어 있는 것만(가장 높은 결집도).
+        # 공시만 있는 종목이 우연히 속한 일반 테마(예: 'AI')의 결집도를 받지 않게.
+        mine = set(stock_themes.get(x["code"], []))
+        own = {a["id"] for a in x["articles"]}
+        best = max((sig["cluster"] for sig in signals if set(sig["_keys"]) & mine and own & sig["_art_ids"]),
+                   key=lambda c: c["points"], default=None)
+        x["objective"]["theme_cluster"] = best
+    for sig in signals:
+        sig.pop("_keys")
+        sig.pop("_art_ids")
 
     fu = followup.scan(conn, window, write=write_followups)
 

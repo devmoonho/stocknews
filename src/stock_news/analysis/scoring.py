@@ -17,7 +17,8 @@ scores.json 형식 (Claude 작성):
         "policy":      {"score": 1-5, "reason": "..."} | null,
         "diffusion":   {"score": 1-5, "reason": "..."},
         "quality":     {"score": 1-5, "reason": "..."} | null,   # 재료의 질 — contract·mna·buyback은 필수
-        # "preprice"는 쓰지 않는다: score.py가 직전 5·20일 상승률·투자주의로 객관 점수를 채운다
+        # "preprice"·"theme_cluster"·"leader"는 쓰지 않는다: score.py가 객관 점수로 채운다
+        #   preprice 직전 5·20일 상승률·시간외·투자주의 / theme_cluster 테마 결집도 / leader 테마 안 연관도 순위(T-·P-만)
       },
       "category": "contract",   # 재료 유형: contract 공급계약·수주 / earnings 실적 / buyback 자사주·주주환원 /
                                 # policy 정부 정책 / tech 기술·특허·허가 / mna M&A·지분·경영권 /
@@ -43,7 +44,35 @@ from .weights import current as _current_weights
 WEIGHTS, WEIGHTS_VERSION = _current_weights()
 REQUIRED_FACTORS = ("scale", "exclusivity", "novelty", "diffusion")
 QUALITY_REQUIRED = ("contract", "mna", "buyback")     # 재료의 질 판단 근거(발주처·인수자·매입 방식)가 공시에 있는 유형
-RUBRIC_VERSION = 2
+RUBRIC_VERSION = 3
+
+
+def _theme_factors(iid: str, code: str, by_code: dict, candidates: dict) -> tuple[dict | None, dict | None]:
+    """→ (theme_cluster, leader) 객관 점수. T-·P-는 그 신호·정책에서, S-·F-는 종목이 속한 테마 신호 중 최고 결집도."""
+    from .leader import leader_score
+
+    def lead(rank, theme):
+        if rank is None:
+            return {"score": 3, "reason": f"{theme}: 편입 사유와 겹치는 핵심 단어 없음(중립) — 객관 점수"}
+        return {"score": leader_score(rank), "reason": f"{theme} 연관도 {rank}위 — 객관 점수"}
+    try:
+        if iid.startswith("T-"):
+            sig = candidates.get("theme_signals", [])[int(iid[2:].split(":")[0]) - 1]
+            cl = sig.get("cluster")
+            return ({"score": cl["score"], "reason": cl["reason"]} if cl else None,
+                    lead(sig.get("leader_rank", {}).get(code), " / ".join(sig["themes"])))
+        if iid.startswith("P-"):
+            g = candidates.get("gov_policy", [])[int(iid[2:].split(":")[0]) - 1]
+            lr = g.get("leader_rank", {}).get(code)
+            if lr:
+                cl = lr["cluster"]
+                return {"score": cl["score"], "reason": f"[{lr['theme']}] " + cl["reason"]}, lead(lr["rank"], lr["theme"])
+            cl = g.get("cluster")
+            return ({"score": cl["score"], "reason": cl["reason"]} if cl else None), None
+    except (ValueError, IndexError, KeyError):
+        return None, None
+    cl = (by_code.get(code) or {}).get("objective", {}).get("theme_cluster")
+    return ({"score": cl["score"], "reason": cl["reason"]} if cl else None), None
 
 
 def final_score(factors: dict) -> tuple[float, int]:
@@ -172,7 +201,9 @@ def validate(scores: dict, candidates: dict, preprice: dict[str, dict | None] | 
                 errors.append(f"{tag}: diffusion {got} ≠ 객관 점수 {want}")
             if obj.get("scale_score") is not None and f["scale"]["score"] != obj["scale_score"]:
                 errors.append(f"{tag}: scale {f['scale']['score']} ≠ 공시 수치 점수 {obj['scale_score']}")
-        f = {**f, "preprice": preprice.get(it["code"])}      # 객관 점수로 덮어씀(가격 데이터 없으면 null → 가중치에서 빠짐)
+        tc, ld = _theme_factors(iid, it["code"], by_code, candidates)
+        # 객관 점수로 덮어씀(데이터 없으면 null → 가중치에서 빠짐)
+        f = {**f, "preprice": preprice.get(it["code"]), "theme_cluster": tc, "leader": ld}
         raw, final = final_score(f)
         out.append({**it, "factors": f, "final": final, "final_raw": raw, "rubric_version": RUBRIC_VERSION})
 
