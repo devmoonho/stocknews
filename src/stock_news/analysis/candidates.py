@@ -198,6 +198,8 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
                 basis = [f"제3자배정 유증 {len(third)}건 회사 유입 {total / 1e8:,.1f}억 = 시총 대비 {ratio}%"]
             scales.append(inflow["score"])
         ctx = prices.context(conn, code, asof, info["raw"])
+        eve = conn.execute("SELECT date, final, after_hours_pct, fallback FROM evening_scores WHERE stock_code=? "
+                           "AND date=? AND sentiment='호재'", (code, asof)).fetchone()
         for d in ev["disclosures"]:                 # 자사주: 매수 기간의 하루 평균 매수 가능액 → 거래대금 대비
             f = d["figures"] or {}
             if f.get("kind") == "자사주취득" and f.get("amount") and f.get("start") and f.get("end"):
@@ -212,6 +214,7 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
             "code": code, "name": info["name"], "market": info["market"], "sector": info["sector"],
             "warning": None if info["audit_info"] in (None, "정상") else info["audit_info"],
             "price": {**(ctx or {}), "market_cap": mcap},
+            "evening_prev": dict(eve) if eve else None,     # 전날 저녁 종가매매 리포트 점수(같은 재료를 다시 채점할 때 참고)
             "themes": [theme_info[k]["name"] for k in themes if k in theme_info][:8],
             "objective": {
                 "diffusion": {"articles": len(subst), "offices": len(offices), "title_mentions": title_hits,

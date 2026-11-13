@@ -26,3 +26,16 @@ def load_env(path: Path = ROOT / ".env") -> None:
             continue
         k, v = line.split("=", 1)
         os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+SESSIONS = ("morning", "evening")      # 아침 장전 리포트 / 저녁 종가매매 리포트
+
+
+def session_dir(date: str, session: str = "morning") -> Path:
+    """그날 작업 폴더: 아침 data/work/YYYY-MM-DD, 저녁 data/work/YYYY-MM-DD_evening."""
+    return WORK_DIR / (date if session == "morning" else f"{date}_{session}")
+
+
+def report_path(date: str, session: str = "morning") -> Path:
+    """리포트 파일: 아침 reports/YYYY-MM-DD.md, 저녁 reports/evening/YYYY-MM-DD.md."""
+    return REPORTS_DIR / f"{date}.md" if session == "morning" else REPORTS_DIR / session / f"{date}.md"

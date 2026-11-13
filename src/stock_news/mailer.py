@@ -76,15 +76,21 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
     runs, warnings = collect_status(conn, w)
     c = candidates.get("counts", {})
     R: list[str] = []
+    evening = scored.get("session") == "evening"
+    kind = "저녁 종가매매 리포트" if evening else "장전 재료 리포트"
 
     # 머리말
-    R.append(f'<tr><td style="padding:4px 0 2px 0;font-size:12px;color:{MUTED};">장전 재료 리포트</td></tr>')
+    R.append(f'<tr><td style="padding:4px 0 2px 0;font-size:12px;color:{MUTED};">{kind}</td></tr>')
     R.append(f'<tr><td style="font-size:22px;font-weight:700;color:{INK};padding-bottom:6px;">{e(date)}</td></tr>')
     R.append(f'<tr><td style="font-size:13px;color:{MUTED};line-height:1.6;">'
              f'대상 {e(w["start"][:16])} ~ {e(w["end"][:16])}<br>'
              f'기사 {e(c.get("articles", "-"))}건(정부 정책뉴스 {e(c.get("gov_policy", "-"))}) · '
              f'공시 {e(c.get("disclosures_listed", "-"))}건 · 후보 {e(c.get("stocks", "-"))}종목 검토 → '
              f'<b style="color:{INK};">호재 {len(good)}</b> · 주의 {len(bad)}</td></tr>')
+    if scored.get("fallback"):
+        R.append(f'<tr><td style="padding-top:12px;"><div style="background:{WARN_BG};color:{WARN_INK};'
+                 f'border:1px solid #f0d58a;border-radius:6px;padding:10px 12px;font-size:13px;">'
+                 f'<b>⚠ Claude 채점 미완료</b> — 객관 지표(공시 규모·선반영·시간외 반응)만으로 만든 간이 리포트</div></td></tr>')
     if warnings:
         lis = "".join(f"<li style='margin:2px 0;'>{e(x)}</li>" for x in warnings)
         R.append(f'<tr><td style="padding-top:12px;"><div style="background:{WARN_BG};color:{WARN_INK};'
@@ -103,10 +109,34 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
         R.append(f'<tr><td style="padding-top:14px;"><table role="presentation" width="100%" cellpadding="0" '
                  f'cellspacing="6" style="border-collapse:separate;"><tr>{cells}</tr></table></td></tr>')
 
+    if evening and good:                # 종가매매 후보 (시간외 시세)
+        R.append(_h2("종가매매 후보 (시간외 시세)"))
+        asof = next((it["evening"]["as_of"] for it in good if it.get("evening")), "-")
+        pct = lambda v: "-" if v is None else f"{v:+.1f}%"  # noqa: E731
+        rows = []
+        for n, it in enumerate(good, 1):
+            q = it.get("evening") or {}
+            nxt = {True: "가능", False: '<b style="color:#b42318;">불가</b>'}.get(q.get("nxt_enabled"), "-")
+            krx, now = q.get("krx_close") or 0, q.get("price") or 0
+            rows.append([f'{n}. <b>{e(it["name"])}</b> {_badge(it["final"])}',
+                         f'{krx:,.0f} → <b>{now:,.0f}</b>',
+                         f'<b>{pct(q.get("after_hours_pct"))}</b><br><span style="color:{MUTED};font-size:11px;">공시 후 '
+                         f'{pct(q.get("since_disclosure_pct"))}</span>',
+                         f'{(q.get("after_value") or 0) / 1e8:,.1f}억', nxt])
+        R.append(_table(["종목", "KRX 종가 → 지금", "시간외", "시간외 대금", "NXT"], rows, ["34%", "26%", "16%", "14%", "10%"]))
+        R.append(f'<tr><td style="font-size:11px;color:{MUTED};padding-top:6px;">시세 기준 {e(asof)} · NXT 불가 종목은 '
+                 f'애프터마켓에서 살 수 없음 · 과거 같은 유형 평균 갭 비교는 첨부 리포트(.md) 참고</td></tr>')
+
     # 체크리스트 (수동 기입용 — 메일을 인쇄하거나 답장에 적어 쓰도록 빈칸)
-    R.append(_h2("장 시작 전 체크리스트"))
+    R.append(_h2("내일 장 시작 전 체크리스트" if evening else "장 시작 전 체크리스트"))
     blank = f'<span style="color:{LINE};">______________</span>'
     R.append(_table(["항목", "확인", "메모"], [
+        ["오늘 마감", "코스피·코스닥 종가, 외국인·기관·개인 순매수", blank],
+        ["시간외 분위기", "NXT 거래대금 상위·급등, 후보 호가 잔량", blank],
+        ["해외", "美 선물·환율 방향", blank],
+        ["내일 일정", "실적 발표·경제지표·만기", blank],
+        ["오늘 저녁 판단", "매수 / 관망 (가격·비중)", blank],
+    ] if evening else [
         ["지수 흐름", "美 증시 마감 / 코스피·코스닥 선물 / 환율", blank],
         ["장초반 매수세", "09:00~09:10 지수 방향, 거래대금 상위 업종", blank],
         ["외국인 수급", "선물·현물 순매수 방향", blank],
@@ -224,11 +254,11 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
 
     R.append(f'<tr><td style="padding-top:18px;font-size:11px;color:{MUTED};line-height:1.6;">'
              f'점수는 고정 채점표 기준의 재료 강도이며 매수 추천이 아닙니다. 최종 판단은 직접 하세요.<br>'
-             f'원본: reports/{e(date)}.md</td></tr>')
+             f'원본: reports/{"evening/" if evening else ""}{e(date)}.md</td></tr>')
 
     return (f'<!doctype html><html lang="ko"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<title>{e(date)} 장전 재료 리포트</title></head>'
+            f'<title>{e(date)} {kind}</title></head>'
             f'<body style="margin:0;padding:0;background:{BG};">'
             f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{BG};">'
             f'<tr><td align="center" style="padding:16px 10px;">'
@@ -242,7 +272,9 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
 def subject(scored: dict) -> str:
     good = [i for i in scored["items"] if i["sentiment"] == "호재"]
     top = ", ".join(f"{i['name']}({i['final']})" for i in good[:3])
-    return f"[장전 리포트] {scored['date']} 호재 {len(good)}종목" + (f" — {top}" if top else "")
+    tag = "[종가매매]" if scored.get("session") == "evening" else "[장전 리포트]"
+    fb = " (간이)" if scored.get("fallback") else ""
+    return f"{tag}{fb} {scored['date']} 호재 {len(good)}종목" + (f" — {top}" if top else "")
 
 
 def send(subject_text: str, html_body: str, text_body: str, to: list[str] | None = None) -> list[str]:

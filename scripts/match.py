@@ -21,9 +21,41 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from stock_news import db  # noqa: E402
 from stock_news.analysis.candidates import build  # noqa: E402
 from stock_news.analysis.digest import render as render_digest  # noqa: E402
-from stock_news.config import ROOT, WORK_DIR, load_env  # noqa: E402
+from stock_news.config import ROOT, SESSIONS, load_env, session_dir  # noqa: E402
+from stock_news.timewindow import load_holidays, prev_trading_day  # noqa: E402
 from stock_news.prices import ensure_daily  # noqa: E402
 from stock_news.timewindow import Window, default_window, now_kst  # noqa: E402
+
+
+def attach_evening_quotes(conn, result: dict, date: str) -> int:
+    """공시·제목 기사가 있는 후보 종목에 1분봉 시세(오늘 KRX 종가·지금 NXT 가격·시간외 등락)를 붙이고 선반영을 다시 계산."""
+    from stock_news import prices
+    from stock_news.master.kiwoom_client import KiwoomClient
+    try:
+        client = KiwoomClient()
+    except Exception as e:  # noqa: BLE001
+        print(f"⚠️  시간외 시세 조회 불가: {e}")
+        return 0
+    info = {r["code"]: r for r in conn.execute("SELECT code, audit_info, order_warning, raw FROM stocks")}
+    n = 0
+    for s in result["stocks"]:
+        if not (s["disclosures"] or s["objective"]["diffusion"]["title_mentions"]):
+            continue
+        first = min((d["received_at"] for d in s["disclosures"] if d.get("received_at") and len(d["received_at"]) > 10),
+                    default=None)
+        try:
+            q = prices.fetch_evening_quote(client, s["code"], date, first)
+        except Exception:  # noqa: BLE001
+            continue
+        if not q:
+            continue
+        raw = json.loads(info[s["code"]]["raw"] or "{}") if s["code"] in info else {}
+        q["nxt_enabled"] = raw.get("nxtEnable") == "Y" or q.get("nxt_traded", False)
+        s["evening"] = q
+        ctx = prices.evening_context(conn, s["code"], date, q)
+        s["objective"]["preprice"] = prices.preprice(ctx, info[s["code"]]["audit_info"], info[s["code"]]["order_warning"])
+        n += 1
+    return n
 
 
 def main() -> int:
@@ -31,6 +63,9 @@ def main() -> int:
     ap.add_argument("--since"), ap.add_argument("--until")
     ap.add_argument("--out", help="결과 폴더 (기본 data/work/리포트날짜)")
     ap.add_argument("--no-prices", action="store_true", help="일봉 조회 생략")
+    ap.add_argument("--no-quotes", action="store_true", help="저녁: 시간외 시세(1분봉) 생략 — 19:10 사전 수집용")
+    ap.add_argument("--session", choices=SESSIONS, default="morning",
+                    help="evening = 저녁 종가매매(당일 15:30~지금, 공시·기사 종목의 시간외 시세 포함)")
     a = ap.parse_args()
     load_env()
     p = lambda s: dt.datetime.strptime(s, "%Y-%m-%d %H:%M")  # noqa: E731
@@ -45,15 +80,22 @@ def main() -> int:
     warn = 0
     if not a.no_prices:
         codes = [s["code"] for s in result["stocks"]]
-        failed = ensure_daily(conn, codes, f"{window.start:%Y-%m-%d}", log=lambda m: None)
+        # 저녁엔 오늘 통합 봉이 20:00까지 미완성 → 어제까지만 받고, 오늘은 1분봉 시세로
+        upto = f"{prev_trading_day(window.end.date(), load_holidays()):%Y-%m-%d}" if a.session == "evening" \
+            else f"{window.start:%Y-%m-%d}"
+        failed = ensure_daily(conn, codes, upto, log=lambda m: None)
         if failed:
             warn = 2
             print(f"⚠️  일봉 조회 실패 {len(failed)}/{len(codes)}종목 — 그 종목은 선반영 점수 없음, 시총은 마스터 가격 사용")
         result = build(conn, window)              # 가격을 반영해 다시 계산(1초 안팎)
-    if not a.out:                                 # 후속 이벤트 상태(followups)는 실제 실행에서만 갱신
+    if not a.out and a.session == "morning":      # 후속 이벤트 상태(followups)는 아침 실제 실행에서만 갱신
         result = build(conn, window, write_followups=True)
+    result["session"] = a.session
+    if a.session == "evening" and not a.no_prices and not a.no_quotes:
+        n = attach_evening_quotes(conn, result, f"{window.end:%Y-%m-%d}")
+        print(f"시간외 시세: {n}종목 (공시·제목 기사 종목)")
     out = (ROOT / a.out) if a.out and not Path(a.out).is_absolute() else Path(a.out) if a.out else \
-        WORK_DIR / f"{window.report_date:%Y-%m-%d}"
+        session_dir(f"{window.report_date:%Y-%m-%d}", a.session)
     out.mkdir(parents=True, exist_ok=True)
     path = out / "candidates.json"
     path.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

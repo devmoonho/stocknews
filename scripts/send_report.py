@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from stock_news import db  # noqa: E402
-from stock_news.config import REPORTS_DIR, WORK_DIR, load_env  # noqa: E402
+from stock_news.config import SESSIONS, load_env, report_path, session_dir  # noqa: E402
 from stock_news.mailer import render_html, send, subject  # noqa: E402
 from stock_news.timewindow import now_kst  # noqa: E402
 
@@ -24,13 +24,14 @@ from stock_news.timewindow import now_kst  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--date", default=f"{now_kst():%Y-%m-%d}")
+    ap.add_argument("--session", choices=SESSIONS, default="morning", help="evening = 저녁 종가매매 리포트")
     ap.add_argument("--to", help="받는 주소(쉼표로 여러 명). 없으면 .env의 MAIL_TO")
     ap.add_argument("--dry-run", action="store_true", help="발송하지 않고 미리보기 파일만 저장")
     a = ap.parse_args()
     load_env()
 
-    work = WORK_DIR / a.date
-    md_path = REPORTS_DIR / f"{a.date}.md"
+    work = session_dir(a.date, a.session)
+    md_path = report_path(a.date, a.session)
     try:
         scored = json.loads((work / "scored.json").read_text(encoding="utf-8"))
         cands = json.loads((work / "candidates.json").read_text(encoding="utf-8"))

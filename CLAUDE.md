@@ -33,9 +33,19 @@
    - 실거래를 제어하는 봇(AutoInvest QuoVestor)의 토큰은 절대 쓰지 않는다.
    - 리포트 파일은 생성 후 손으로 고치지 않는다(다시 만들면 덮어씀). 수정은 scores.json → score.py → report.py 순서로.
 
+## 저녁 종가매매 리포트 (평일 19:45 발송)
+"오늘 저녁 리포트 만들어줘" 또는 `/evening-report` — 당일 15:30 ~ 지금의 공시·뉴스로 NXT 애프터마켓(20:00 마감) 매매 판단용 리포트.
+- 절차: `collect.py` → `match.py --session evening`(시간외 시세 포함) → 채점(아침과 같은 채점표, `data/work/날짜_evening/scores.json`)
+  → `score.py --session evening` → `report.py --session evening`(`reports/evening/날짜.md`) → `send_report.py --session evening`
+  → `send_telegram.py --session evening`
+- 저녁 점수는 DB `evening_scores`(아침 `scores`와 별도). 선반영은 오늘 KRX 종가까지 상승률 + 지금 시간외 등락.
+- 자동: 19:10 `evening_auto.py --prefetch`, 19:30 `evening_auto.py` — Claude 채점은 19:42:30까지만 기다리고
+  못 끝내면 객관 지표 간이 리포트로 대체해 19:45 전에 보낸다.
+
 ## 자동 실행 (미니PC cron)
 - 평일 07:00 `scripts/morning_auto.py` — 1~8단계 전체(채점은 `claude -p`). 실패 시 텔레그램 알림. 로그 `data/logs/`
-- 평일 16:10 `scripts/track_prices.py` — 채점 종목·비교 기준 종목의 주가 반응 기록(`price_reactions`),
+- 평일 19:10 `scripts/evening_auto.py --prefetch`, 19:30 `scripts/evening_auto.py` — 저녁 종가매매 리포트
+- 평일 20:10 `scripts/track_prices.py` — 채점 종목·비교 기준 종목의 주가 반응 기록(`price_reactions`),
   장중 상한가 도달·해제·재도달(`intraday_patterns`, 1분봉)
 - 토요일 08:00 `scripts/weekly_review.py` — 점수별·근거별 실제 반응 집계, **재료 유형·근거별 영향 지속성(D0~D+10 경로, 정점·반감일)**,
   가중치 재귀 조절(`config/weights.json`,
@@ -89,4 +99,7 @@
 - DART list.json은 시각이 없음 → 오늘의공시 페이지(dsac001)에서 시각을 붙인다. 지분·펀드 공시 일부는 시각 없음(정상).
 - 키움 키는 현재 **모의투자** 키(KIWOOM_MOCK=1). 종목·테마 조회는 모의 서버에서도 동작.
 - korea.kr 목록은 날짜만, 본문 meta `article:published_time`에 시각이 있다('Z'가 붙어 있지만 KST). robots.txt 허용.
-- 네이버 사이트 robots.txt는 일반 봇을 막는다 — 하루 1회 수동 실행, 요청 간격 유지. 크롤링 빈도를 늘리지 않는다.
+- 네이버 사이트 robots.txt는 일반 봇을 막는다 — 목록은 하루 2회(아침 07:00, 저녁 19:10·19:30), 기사 본문은 기사당 1회만
+  (저녁에 받은 기사는 아침에 다시 받지 않음), 요청 간격 유지. 이보다 빈도를 늘리지 않는다(2026-11-13 사용자 결정).
+- 키움 일봉 종가는 KRX+NXT 통합(20:00까지) → 그날 봉은 20:05 전에 저장하지 않는다(`tracking._partial_day`).
+  저녁 시세(오늘 KRX 종가·지금 NXT 가격)는 1분봉(ka10080)에서 계산한다.

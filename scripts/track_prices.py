@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""장 마감 후: 리포트 종목의 주가 반응 기록 (price_reactions). cron 평일 16:10.
+"""장 마감 후: 리포트 종목의 주가 반응 기록 (price_reactions). cron 평일 20:10(NXT 애프터마켓 마감 뒤 — 통합 일봉 완성).
 
     python3 scripts/track_prices.py                 # 아직 다 안 채워진 날짜 전부(최근 5거래일 수익률 포함)
     python3 scripts/track_prices.py --date 2026-11-12

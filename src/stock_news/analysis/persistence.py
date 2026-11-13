@@ -113,7 +113,7 @@ def render(conn, end: str) -> str:
     L = ["## 재료 영향 지속성 (누적, 호재)", "",
          "D0 시가 매수 기준, 같은 시장 지수 대비 **누적 초과수익** 평균. 괄호 = 그날까지 데이터가 있는 표본 수.", ""]
     if not items:
-        L.append("아직 경로 데이터 없음 — 평일 16:10 반응 기록이 쌓이면 표시됩니다.")
+        L.append("아직 경로 데이터 없음 — 평일 20:10 반응 기록이 쌓이면 표시됩니다.")
         return "\n".join(L) + "\n"
 
     by_cat = defaultdict(list)
@@ -154,7 +154,7 @@ def render_intraday(conn, end: str) -> str:
         "ON s.date=i.date AND s.stock_code=i.stock_code WHERE i.date <= ? AND s.sentiment='호재'", (end,))]
     L = ["## 장중 상한가 패턴 (누적, 호재)", ""]
     if not rows:
-        L.append("아직 기록 없음 — 평일 16:10 반응 기록 때 채점 종목의 1분봉으로 쌓입니다.")
+        L.append("아직 기록 없음 — 평일 20:10 반응 기록 때 채점 종목의 1분봉으로 쌓입니다.")
         return "\n".join(L) + "\n"
     L += ["| 구분 | 건수 | 상한가 도달 | 해제 후 재도달 | 종가 상한가 | 평균 해제 횟수(도달 종목) |", "|---|---|---|---|---|---|"]
 

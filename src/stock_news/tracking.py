@@ -50,9 +50,9 @@ def _base_price(r: dict) -> float | None:
 
 
 def _partial_day() -> str | None:
-    """장 마감(15:40) 전이면 오늘 날짜 — 그날 일봉은 아직 미완성."""
+    """NXT 애프터마켓 마감(20:00) + 여유 5분 전이면 오늘 날짜 — 그날 통합 일봉은 아직 미완성이라 저장하지 않는다."""
     now = now_kst()
-    return f"{now:%Y-%m-%d}" if now.time() < dt.time(15, 40) else None
+    return f"{now:%Y-%m-%d}" if now.time() < dt.time(20, 5) else None
 
 
 class PriceStore:
@@ -212,10 +212,37 @@ def _targets(conn, date: str) -> list[dict]:
     return out
 
 
+def track_evening(conn, store: "PriceStore", trading_days: list[str], log=print) -> int:
+    """저녁 종가매매 리포트 종목의 다음 거래일 반응(진입가 = 리포트 시각 NXT 가격 대비 시가·고가·종가)."""
+    n = 0
+    rows = conn.execute("SELECT date, stock_code, entry_price FROM evening_scores WHERE next_close IS NULL "
+                        "AND entry_price IS NOT NULL").fetchall()
+    for r in rows:
+        nxt = next((d for d in trading_days if d > r["date"]), None)
+        if not nxt:
+            continue
+        try:
+            store.ensure_stock(r["stock_code"], nxt)
+        except Exception as e:  # noqa: BLE001
+            log(f"  저녁 {r['date']} {r['stock_code']} 일봉 조회 실패: {e}")
+            continue
+        bar = conn.execute("SELECT open, high, close FROM price_daily WHERE code=? AND dt=?", (r["stock_code"], nxt)).fetchone()
+        if not bar or not bar["open"]:
+            continue
+        e = r["entry_price"]
+        conn.execute("UPDATE evening_scores SET next_open=?, next_high=?, next_close=?, next_open_ret=?, next_high_ret=?, "
+                     "next_close_ret=?, updated_at=? WHERE date=? AND stock_code=?",
+                     (bar["open"], bar["high"], bar["close"], bar["open"] / e - 1, bar["high"] / e - 1, bar["close"] / e - 1,
+                      f"{now_kst():%Y-%m-%d %H:%M:%S}", r["date"], r["stock_code"]))
+        n += 1
+    conn.commit()
+    return n
+
+
 def track(conn, client: KiwoomClient, dates: list[str] | None = None, log=print) -> dict:
     """채점이 있는 날짜들의 반응을 채운다(이미 complete면 건너뜀)."""
     today = f"{now_kst():%Y-%m-%d}"
-    after_close = now_kst().time() >= dt.time(15, 40)
+    after_close = now_kst().time() >= dt.time(20, 5)        # 통합 봉(KRX+NXT) 완성 뒤에만 그날을 기록
     if dates is None:
         dates = [r[0] for r in conn.execute(
             "SELECT DISTINCT s.date FROM scores s WHERE NOT EXISTS (SELECT 1 FROM price_reactions p "
@@ -316,4 +343,5 @@ def track(conn, client: KiwoomClient, dates: list[str] | None = None, log=print)
                          list(row.values()))
             stats["rows"] += 1
         conn.commit()
+    stats["evening"] = track_evening(conn, store, trading_days, log)
     return stats

@@ -112,6 +112,10 @@ def render(c: dict) -> str:
                  else "규모 판단필요")
         pp = o.get("preprice")
         pre = f"선반영 {pp['score']}점({pp['reason'].replace(' — 객관 점수', '')})" if pp else "선반영 데이터 없음"
+        evp = s.get("evening_prev")
+        if evp:
+            pre += (f" · 어제 저녁 리포트 {evp['final'] if evp['final'] is not None else '-'}점"
+                    f"(시간외 {evp['after_hours_pct'] if evp['after_hours_pct'] is not None else '-'}%)")
         tc = o.get("theme_cluster")
         if tc:
             pre += f" · 테마 결집도 {tc['score']}점"

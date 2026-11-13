@@ -118,3 +118,58 @@ def preprice(ctx: dict | None, audit_info: str | None, order_warning: str | None
     if str(order_warning or "0") == "3":
         tags.append("단기과열")
     return {"score": s, "reason": f"{' · '.join(tags)} ({ctx['asof']} 종가 기준) — 객관 점수"}
+
+
+# ---------------------------------------------------------------- 저녁(장 마감 후) 시세 — 1분봉
+KRX_CLOSE_HHMM = "1530"
+
+
+def evening_quote(bars: list[dict], date: str, disclosure_at: str | None = None) -> dict | None:
+    """키움 ka10080 1분봉(최신순, 당일 NXT 애프터마켓 포함) → 오늘 KRX 종가·현재가·시간외 등락·시간외 거래대금·공시 후 등락.
+
+    disclosure_at: 'YYYY-MM-DD HH:MM:SS' — 그 시각 직전 마지막 봉 가격 대비 지금 등락.
+    """
+    from .tracking import _num
+    ymd = date.replace("-", "")
+    day = sorted((b for b in bars if str(b.get("cntr_tm", "")).startswith(ymd)), key=lambda b: b["cntr_tm"])
+    if not day:
+        return None
+    hm = lambda b: b["cntr_tm"][8:12]  # noqa: E731
+    regular = [b for b in day if hm(b) <= KRX_CLOSE_HHMM]
+    after = [b for b in day if hm(b) > KRX_CLOSE_HHMM]
+    if not regular:
+        return None
+    krx = _num(regular[-1].get("cur_prc"))
+    now = _num(day[-1].get("cur_prc"))
+    vol = sum(_num(b.get("trde_qty")) or 0 for b in after)
+    value = sum((_num(b.get("trde_qty")) or 0) * (_num(b.get("cur_prc")) or 0) for b in after)
+    out = {"krx_close": krx, "price": now, "as_of": f"{day[-1]['cntr_tm'][8:10]}:{day[-1]['cntr_tm'][10:12]}",
+           "after_hours_pct": round((now / krx - 1) * 100, 1) if krx and now else None,
+           "after_volume": vol, "after_value": round(value), "after_bars": len(after),
+           # 18:00 이후 체결 = KRX 시간외 단일가(16:00~18:00)가 아닌 NXT 애프터마켓 체결 → 실제로 거래 가능하다는 증거
+           "nxt_traded": any(hm(b) >= "1800" for b in after)}
+    if disclosure_at:
+        t = disclosure_at.replace("-", "").replace(" ", "").replace(":", "")[:12]     # YYYYMMDDHHMM
+        before = [b for b in day if b["cntr_tm"][:12] < t]
+        ref = _num(before[-1].get("cur_prc")) if before else None
+        out["since_disclosure_pct"] = round((now / ref - 1) * 100, 1) if ref and now else None
+    return out
+
+
+def fetch_evening_quote(client, code: str, date: str, disclosure_at: str | None = None) -> dict | None:
+    body, _, _ = client.call("ka10080", "/api/dostk/chart", {"stk_cd": code, "tic_scope": "1", "upd_stkpc_tp": "1"})
+    return evening_quote(body.get("stk_min_pole_chart_qry") or [], date, disclosure_at)
+
+
+def evening_context(conn, code: str, date: str, quote: dict | None) -> dict | None:
+    """저녁 선반영 계산용 맥락: 어제까지 통합 종가 + 오늘 KRX 종가로 5·20일 상승률, 지금 시간외 등락."""
+    if not quote or not quote.get("krx_close"):
+        return None
+    hist = [r[0] for r in conn.execute("SELECT close FROM price_daily WHERE code=? AND dt<? ORDER BY dt DESC LIMIT 20",
+                                       (code, date)) if r[0]]
+    seq = [quote["krx_close"], *hist]
+
+    def ret(n: int) -> float | None:
+        return round((seq[0] / seq[n] - 1) * 100, 1) if len(seq) > n else None
+    return {"asof": f"{date} 15:30", "close": quote["krx_close"], "ret5_pct": ret(5), "ret20_pct": ret(20),
+            "krx_close": quote["krx_close"], "after_hours_pct": quote.get("after_hours_pct")}

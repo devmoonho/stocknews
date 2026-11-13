@@ -20,8 +20,12 @@ def render(conn, scored: dict, candidates: dict, top_n: int = 7, warnings: list[
     good = [i for i in items if i["sentiment"] == "호재"]
     bad = [i for i in items if i["sentiment"] == "악재"]
     w = scored["window"]
-    L = [f"<b>📋 {e(scored['date'])} 장전 재료 리포트</b>",
+    evening = scored.get("session") == "evening"
+    title = "🌙 {} 저녁 종가매매 리포트" if evening else "📋 {} 장전 재료 리포트"
+    L = [f"<b>{e(title.format(scored['date']))}</b>",
          f"<i>{e(w['start'][5:16])} ~ {e(w['end'][5:16])} · 호재 {len(good)} · 주의 {len(bad)}</i>"]
+    if scored.get("fallback"):
+        L.append("⚠️ Claude 채점 미완료 — 공시 규모·시간외 반응 등 객관 지표만으로 만든 간이 리포트")
     if warnings:
         L.append("")
         L.append(f"⚠️ 수집 경고 {len(warnings)}건 — " + e(warnings[0][:120]))
@@ -32,7 +36,13 @@ def render(conn, scored: dict, candidates: dict, top_n: int = 7, warnings: list[
             links = resolve_sources(conn, it.get("sources", []))
             link = f' <a href="{e(links[0][1])}">원문</a>' if links else ""
             tags = "".join(f"[{t}]" for t in basis_tags(conn, it))
-            L.append(f"{n}. <b>{e(it['name'])}</b> {it['final']}점 {tags} — {e(it['material'])}{link}")
+            q = it.get("evening") or {}
+            quote = ""
+            if evening and q.get("after_hours_pct") is not None:
+                nxt = "" if q.get("nxt_enabled") is not False else " · NXT 불가"
+                quote = f" <i>(시간외 {q['after_hours_pct']:+.1f}% · {q.get('price') or 0:,.0f}원{nxt})</i>"
+            sc = "" if it.get("final") is None else f" {it['final']}점"
+            L.append(f"{n}. <b>{e(it['name'])}</b>{sc} {tags}{quote} — {e(it['material'])}{link}")
         if len(good) > top_n:
             L.append(f"<i>…외 {len(good) - top_n}종목은 메일/리포트 참고</i>")
     else:
@@ -50,7 +60,8 @@ def render(conn, scored: dict, candidates: dict, top_n: int = 7, warnings: list[
         for r in picked[:3]:
             L.append(f"• {e(r['title'])} → {e(', '.join(names.get(c, c) for c in r['picked']))}")
     L.append("")
-    L.append("<i>재료 강도 점수이며 매수 추천 아님. 장 시작 전 지수·수급 확인.</i>")
+    L.append("<i>재료 강도 점수이며 매수 추천 아님. " +
+             ("시간외 가격은 리포트 시각 기준, NXT 마감 20:00.</i>" if evening else "장 시작 전 지수·수급 확인.</i>"))
     text = "\n".join(L)
     if len(text) > LIMIT:
         text = text[:LIMIT - 20].rsplit("\n", 1)[0] + "\n<i>…(생략)</i>"

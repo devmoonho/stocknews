@@ -181,6 +181,48 @@ SOURCE_NAMES = {"naver_focus_401": "네이버 시황·전망", "korea_policy": "
                 "kiwoom_stocks": "종목 마스터(키움)", "kiwoom_themes": "테마(키움)", "naver_themes": "테마(네이버)"}
 
 
+def past_gap_by_category(conn, min_n: int = 3) -> dict[str, tuple[float, int]]:
+    """재료 유형별 과거 D0 평균 시초가 갭(KRX 기준가 대비) — 저녁 '이미 반영 정도' 비교용. 표본 min_n건 이상만."""
+    rows = conn.execute("SELECT s.category, p.gap_pct FROM price_reactions p JOIN scores s ON s.date=p.date AND "
+                        "s.stock_code=p.stock_code WHERE p.grp='scored' AND p.sentiment='호재' AND p.gap_pct IS NOT NULL")
+    acc: dict[str, list[float]] = {}
+    for cat, g in rows:
+        acc.setdefault(cat or "other", []).append(g)
+    return {k: (sum(v) / len(v), len(v)) for k, v in acc.items() if len(v) >= min_n}
+
+
+def evening_section(conn, good: list[dict]) -> list[str]:
+    """저녁 종가매매 후보표: 오늘 KRX 종가·지금 NXT 가격·시간외 등락·공시 후 등락·거래대금·NXT 가능 여부."""
+    from .analysis.categories import label
+    past = past_gap_by_category(conn)
+    L = ["## 종가매매 후보 (시간외 시세)", ""]
+    if not good:
+        return L + ["해당 없음", ""]
+    asof = next((it["evening"]["as_of"] for it in good if it.get("evening")), "-")
+    L += [f"시세 기준 {asof} (NXT 애프터마켓, 20:00 마감). **NXT 불가 종목은 애프터마켓에서 살 수 없음.**", "",
+          "| 순위 | 종목 | 강도 | 근거 | KRX 종가 | 지금 | 시간외 | 공시 후 | 시간외 거래대금 | NXT | 선반영 | 과거 같은 유형 D0 갭 |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for n, it in enumerate(good, 1):
+        q = it.get("evening") or {}
+        pp = ((it.get("factors") or {}).get("preprice") or {}).get("score", "-")
+        cat = it.get("category") or "other"
+        pg = past.get(cat)
+        cmp = "-"
+        if pg and q.get("after_hours_pct") is not None:
+            diff = q["after_hours_pct"] - pg[0] * 100
+            cmp = f"{label(cat)} 평균 {pg[0] * 100:+.1f}%({pg[1]}건) → 지금 {'덜' if diff < 0 else '더'} 오름"
+        pct = lambda v: "-" if v is None else f"{v:+.1f}%"  # noqa: E731
+        won = lambda v: "-" if not v else f"{v:,.0f}"  # noqa: E731
+        nxt = "가능(체결 있음)" if q.get("nxt_traded") else {True: "가능", False: "**불가**"}.get(q.get("nxt_enabled"), "-")
+        L.append(f"| {n} | **{it['name']}** ({it['code']}) | {'-' if it.get('final') is None else str(it['final']) + '점'} | {'·'.join(basis_tags(conn, it)) or '-'} | "
+                 f"{won(q.get('krx_close'))} | {won(q.get('price'))} | {pct(q.get('after_hours_pct'))} | "
+                 f"{pct(q.get('since_disclosure_pct'))} | {(q.get('after_value') or 0) / 1e8:,.1f}억 | {nxt} | {pp} | {cmp} |")
+    L += ["", "<sub>시간외 = 지금 NXT 가격 / 오늘 KRX 종가 − 1. 공시 후 = 공시 접수 직전 1분봉 대비. "
+          "과거 D0 갭 = 이 시스템이 기록한 같은 재료 유형의 다음날 시초가 갭 평균(표본 3건 이상일 때만). "
+          "재료 강도 점수이며 매수 추천이 아님.</sub>", ""]
+    return L
+
+
 def render(conn, scored: dict, candidates: dict) -> str:
     date = scored["date"]
     w = scored["window"]
@@ -190,9 +232,14 @@ def render(conn, scored: dict, candidates: dict) -> str:
     runs, warnings = collect_status(conn, w)
     c = candidates.get("counts", {})
     L: list[str] = []
+    evening = scored.get("session") == "evening"
 
-    L.append(f"# {date} 장전 재료 리포트")
+    L.append(f"# {date} 저녁 종가매매 리포트" if evening else f"# {date} 장전 재료 리포트")
     L.append("")
+    if scored.get("fallback"):
+        L.append("> ⚠️ **Claude 채점이 시간 안에 끝나지 않아 객관 지표(공시 규모·선반영·시간외 반응)만으로 만든 간이 리포트입니다.** "
+                 "점수 칸은 공시 규모 점수입니다.")
+        L.append("")
     L.append(f"- 대상 시간대: **{w['start'][:16]} ~ {w['end'][:16]}**")
     L.append(f"- 수집: 기사 {c.get('articles', '-')}건(정부 정책뉴스 {c.get('gov_policy', '-')}건 포함) · "
              f"공시 {c.get('disclosures_listed', '-')}건 → 후보 {c.get('stocks', '-')}종목 검토")
@@ -205,17 +252,26 @@ def render(conn, scored: dict, candidates: dict) -> str:
             L.append(f"> - {x}")
     L.append("")
 
+    if evening:
+        L += evening_section(conn, good)
     # ------------------------------------------------------------ 체크리스트
-    L.append("## 장 시작 전 체크리스트 (직접 기입)")
+    L.append("## 장 시작 전 체크리스트 (직접 기입)" if not evening else "## 내일 장 시작 전 체크리스트 (직접 기입)")
     L.append("")
     L.append("| 항목 | 확인 내용 | 메모 |")
     L.append("|---|---|---|")
-    L.append("| 지수 흐름 | 美 증시 마감 / 코스피·코스닥 선물 / 환율 |  |")
-    L.append("| 장초반 매수세 | 09:00~09:10 지수 방향, 거래대금 상위 업종 |  |")
-    L.append("| 외국인 수급 | 선물·현물 순매수 방향 |  |")
-    L.append("| 기관 수급 | 순매수 방향, 프로그램 매매 |  |")
-    L.append("| 개인 수급 | 순매수 방향 |  |")
-    L.append("| 오늘의 판단 | 공격 / 중립 / 관망 |  |")
+    if evening:
+        L.append("| 오늘 마감 | 코스피·코스닥 종가, 외국인·기관·개인 순매수 |  |")
+        L.append("| 시간외 분위기 | NXT 거래대금 상위·급등 종목, 위 후보의 호가 잔량 |  |")
+        L.append("| 해외 | 美 선물·환율 방향 |  |")
+        L.append("| 내일 일정 | 실적 발표·경제지표·만기 등 |  |")
+        L.append("| 오늘 저녁 판단 | 매수 / 관망 (매수 시 가격·비중) |  |")
+    else:
+        L.append("| 지수 흐름 | 美 증시 마감 / 코스피·코스닥 선물 / 환율 |  |")
+        L.append("| 장초반 매수세 | 09:00~09:10 지수 방향, 거래대금 상위 업종 |  |")
+        L.append("| 외국인 수급 | 선물·현물 순매수 방향 |  |")
+        L.append("| 기관 수급 | 순매수 방향, 프로그램 매매 |  |")
+        L.append("| 개인 수급 | 순매수 방향 |  |")
+        L.append("| 오늘의 판단 | 공격 / 중립 / 관망 |  |")
     L.append("")
 
     # ------------------------------------------------------------ 순위표
@@ -226,7 +282,8 @@ def render(conn, scored: dict, candidates: dict) -> str:
         L.append("|---|---|---|---|---|---|---|---|")
         for rank, it in enumerate(good, 1):
             tags = "·".join(basis_tags(conn, it)) or "-"
-            L.append(f"| {rank} | **{it['name']}** ({it['code']}) | {it['final']}점 ({it['final_raw']}) | {tags} | "
+            sc = "-" if it.get("final") is None else f"{it['final']}점 ({it['final_raw']})"
+            L.append(f"| {rank} | **{it['name']}** ({it['code']}) | {sc} | {tags} | "
                      f"{_md(it['material'])} |  |  |  |")
     else:
         L.append("해당 없음")
@@ -277,7 +334,8 @@ def render(conn, scored: dict, candidates: dict) -> str:
     L.append("")
     for rank, it in enumerate(good, 1):
         tags = " ".join(f"[{t}]" for t in basis_tags(conn, it))
-        L.append(f"### {rank}. {it['name']} ({it['code']}) — {it['final']}점 {STARS.get(it['final'], '')} {tags}")
+        sc = "점수 없음(간이)" if it.get("final") is None else f"{it['final']}점 {STARS.get(it['final'], '')}"
+        L.append(f"### {rank}. {it['name']} ({it['code']}) — {sc} {tags}")
         L.append("")
         L.append(f"**재료**: {it['material']}")
         L.append("")

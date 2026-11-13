@@ -180,6 +180,22 @@ CREATE TABLE IF NOT EXISTS intraday_patterns ( -- D0 장중 상한가 패턴 (1�
     PRIMARY KEY (date, stock_code)
 );
 
+CREATE TABLE IF NOT EXISTS evening_scores (     -- 저녁 종가매매 리포트 채점(아침 scores와 별도) + 다음날 반응
+    date          TEXT NOT NULL,            -- 저녁 리포트 날짜(그날 15:30 이후 재료)
+    stock_code    TEXT NOT NULL,
+    stock_name    TEXT, sentiment TEXT, final INTEGER, final_raw REAL, material TEXT,
+    factors       TEXT, sources TEXT, category TEXT, weights_version INTEGER, rubric_version INTEGER,
+    fallback      INTEGER DEFAULT 0,        -- Claude 채점이 시간 안에 안 끝나 객관 지표로만 만든 항목
+    quote_time    TEXT,                     -- 시세 기준 시각 HH:MM
+    krx_close     REAL,                     -- 그날 KRX 종가(15:30)
+    entry_price   REAL,                     -- 리포트 시각 NXT 가격(애프터마켓 매수 가정가)
+    after_hours_pct REAL, since_disclosure_pct REAL, after_value REAL,
+    nxt_enabled   INTEGER,                  -- 종목 마스터 nxtEnable
+    next_open REAL, next_high REAL, next_close REAL,   -- 다음 거래일 (통합 봉)
+    next_open_ret REAL, next_close_ret REAL, next_high_ret REAL,   -- 진입가 대비
+    updated_at    TEXT,
+    PRIMARY KEY (date, stock_code)
+);
 CREATE TABLE IF NOT EXISTS factor_corr_history (  -- 주간 리뷰의 항목별 상관 — 가중치 0/복귀 규칙(연속 주 판단)
     week_end TEXT NOT NULL, target TEXT NOT NULL, factor TEXT NOT NULL, n INTEGER, rho REAL,
     PRIMARY KEY (week_end, target, factor)
