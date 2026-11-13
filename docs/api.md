@@ -13,17 +13,25 @@
 
 ## 엔드포인트
 
-### `GET /api/health`
-연결 확인. `{"ok": true, "api_version": 1, "now": "...", "latest_article": "...", "latest_report": "2026-11-13"}`
+### 아침 / 저녁 리포트 (`session`)
+`/api/dates`, `/api/report/...`, `/api/report/.../markdown`은 `session` 인자를 받는다.
+- `session=morning`(기본): 아침 **장전 재료 리포트** — 전 거래일 15:30 ~ 당일 07:00 재료, 평일 07:15 전후 갱신
+- `session=evening`: 저녁 **종가매매 리포트** — 당일 15:30 ~ 19:30 재료 + 시간외(NXT) 시세, 평일 19:35~19:45 갱신.
+  NXT 애프터마켓(~20:00)과 다음날 NXT 프리마켓(08:00~) 전에 볼 용도
+- 잘못된 값이면 400
 
-### `GET /api/dates?limit=60`
+### `GET /api/health`
+연결 확인. `{"ok": true, "api_version": 1, "now": "...", "latest_article": "...", "latest_report": "2026-11-13",
+"latest_evening_report": "2026-11-13"}` (저녁 리포트가 아직 없으면 null)
+
+### `GET /api/dates?limit=60[&session=evening]`
 리포트(채점)가 있는 날짜, 최신순.
 ```json
 {"items": [{"date": "2026-11-13", "bullish": 25, "bearish": 11,
             "top": [{"code": "002990", "name": "금호건설", "final": 4}]}]}
 ```
 
-### `GET /api/report/{YYYY-MM-DD | latest}`
+### `GET /api/report/{YYYY-MM-DD | latest}[?session=evening]`
 그날 아침 리포트의 채점 결과.
 ```json
 {
@@ -51,11 +59,30 @@
 }
 ```
 - `final`은 호재 강도 1~5 (매수 추천이 아님). `bullish`는 이미 순위순.
+- 공통 추가 필드: `"session": "morning" | "evening"`, `"fallback": false`, `"fallback_reason": null`
+
+**저녁(`session=evening`)에서 달라지는 점**
+- `fallback: true`면 Claude 채점이 19:42:30까지 끝나지 않아 **객관 지표만으로 만든 간이 리포트**다
+  (`fallback_reason`에 이유). 이때 `final`은 공시 규모 점수이거나 null(점수 없음), 화면에 "간이" 표시 필요
+- 각 종목에 `evening_quote`(아침 리포트에서는 null):
+```json
+"evening_quote": {
+  "as_of": "19:31",            // 시세 기준 시각(HH:MM)
+  "krx_close": 8630,           // 오늘 KRX 종가(15:30)
+  "price": 9150,               // 리포트 시각 NXT 가격
+  "after_hours_pct": 6.0,      // 시간외 등락 % = price / krx_close − 1  (단위 %, 소수 아님)
+  "since_disclosure_pct": 5.3, // 공시 접수 직전 가격 대비 % (공시 없는 종목은 null)
+  "after_value": 6327391880,   // 15:30 이후 거래대금(원)
+  "nxt_enabled": true,         // NXT 거래 가능(마스터 표시 또는 18시 이후 체결) — false면 애프터마켓 매수 불가
+  "nxt_traded": true           // 18시 이후 실제 체결 있음
+}
+```
+  ※ `evening_quote`의 %는 **이미 % 단위**(6.0 = 6%). 다른 엔드포인트의 비율(0.035 = 3.5%)과 다르니 주의
 - factors 키: scale 규모 / exclusivity 최초·독점 / novelty 신규성 / policy 정책 수혜 / diffusion 확산도 /
   quality 재료의 질 / preprice 선반영(높을수록 재료 전에 덜 오름) / theme_cluster 테마 결집도 / leader 테마 대장(테마·정책 종목만).
   v1(11-12·13 리포트)은 앞의 5개만, v2는 7개까지 있다. 없는 키는 빈칸으로 처리.
 
-### `GET /api/report/{YYYY-MM-DD}/markdown`
+### `GET /api/report/{YYYY-MM-DD}/markdown[?session=evening]`
 리포트 원문 마크다운. `{"date": "...", "markdown": "# 2026-11-13 장전 재료 리포트 ..."}`
 
 ### `GET /api/news`
@@ -135,6 +162,15 @@ signal(buy/sell/neutral, 제목 키워드 규칙), confirmed(확정형 재료), 
  "news": [ /* 종목명이 들어간 최근 기사 30건, /api/news 항목 형식 */ ]}
 ```
 `reaction`은 그날 20:10 이후에 채워진다(전에는 null).
+
+추가 필드 `evening_scores` — 그 종목이 저녁 종가매매 리포트에 나온 이력(최근 30건):
+```json
+"evening_scores": [{"date": "2026-11-13", "sentiment": "호재", "final": 4, "final_raw": 4.32, "material": "...",
+  "category_name": "공급계약·수주", "fallback": false,
+  "quote": { /* evening_quote와 같은 형식 */ },
+  "next_day": {"open_ret": 0.031, "high_ret": 0.22, "close_ret": 0.18}}]   // 진입가(리포트 시각 NXT 가격) 대비, 소수.
+                                                                            // 다음 거래일 20:10 이후 채워짐(전에는 null)
+```
 
 ## 예시 (Python 표준 라이브러리)
 ```python

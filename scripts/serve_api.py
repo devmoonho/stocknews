@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from stock_news.analysis.categories import label as category_label  # noqa: E402
-from stock_news.config import DATA_DIR, DB_PATH, WORK_DIR, load_env  # noqa: E402
+from stock_news.config import DATA_DIR, DB_PATH, SESSIONS, load_env, report_path, session_dir  # noqa: E402
 from stock_news.report import SOURCE_NAMES, basis_tags, collect_status, resolve_sources  # noqa: E402
 from stock_news.timewindow import now_kst  # noqa: E402
 
@@ -127,18 +127,38 @@ def disclosure_out(r: sqlite3.Row, with_body: bool = False) -> dict:
 
 
 # ---------------------------------------------------------------- 채점 결과
-def load_scored(conn, date: str) -> dict | None:
-    path = WORK_DIR / date / "scored.json"
+TABLE = {"morning": "scores", "evening": "evening_scores"}     # 아침 장전 / 저녁 종가매매
+
+
+def q_session(params: dict) -> str:
+    s = q1(params, "session", "morning")
+    if s not in SESSIONS:
+        raise ApiError(400, "session: morning(아침 장전) / evening(저녁 종가매매)")
+    return s
+
+
+def _quote_from_row(r) -> dict | None:
+    if r["entry_price"] is None and r["krx_close"] is None:
+        return None
+    return {"as_of": r["quote_time"], "krx_close": r["krx_close"], "price": r["entry_price"],
+            "after_hours_pct": r["after_hours_pct"], "since_disclosure_pct": r["since_disclosure_pct"],
+            "after_value": r["after_value"], "nxt_enabled": None if r["nxt_enabled"] is None else bool(r["nxt_enabled"])}
+
+
+def load_scored(conn, date: str, session: str = "morning") -> dict | None:
+    path = session_dir(date, session) / "scored.json"
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
-    rows = conn.execute("SELECT * FROM scores WHERE date=?", (date,)).fetchall()
+    rows = conn.execute(f"SELECT * FROM {TABLE[session]} WHERE date=?", (date,)).fetchall()
     if not rows:
         return None
     items = [{"id": "S-" + r["stock_code"], "code": r["stock_code"], "name": r["stock_name"],
               "sentiment": r["sentiment"], "final": r["final"], "final_raw": r["final_raw"],
               "material": r["material"], "category": r["category"], "factors": json.loads(r["factors"] or "{}"),
-              "sources": json.loads(r["sources"] or "[]")} for r in rows]
-    return {"date": date, "window": None, "items": items, "reviewed_policies": []}
+              "sources": json.loads(r["sources"] or "[]"),
+              **({"evening": _quote_from_row(r)} if session == "evening" else {})} for r in rows]
+    fb = session == "evening" and any(r["fallback"] for r in rows)
+    return {"date": date, "session": session, "window": None, "items": items, "reviewed_policies": [], "fallback": fb}
 
 
 def score_item(conn, it: dict, rank: int | None) -> dict:
@@ -150,43 +170,48 @@ def score_item(conn, it: dict, rank: int | None) -> dict:
             "category": it.get("category"), "category_name": category_label(it.get("category")),
             "basis": basis_tags(conn, it), "caution": it.get("caution"), "factors": factors,
             "sources": [{"label": n, "url": u} for n, u in resolve_sources(conn, it.get("sources", []))],
-            "item_id": it.get("id")}
+            "item_id": it.get("id"),
+            # 저녁 종가매매: 리포트 시각 시세(KRX 종가·NXT 가격·시간외 등락·공시 후 등락·시간외 거래대금·NXT 가능)
+            "evening_quote": it.get("evening")}
 
 
-def report(conn, date: str) -> dict:
-    sc = load_scored(conn, check_date(date))
+def report(conn, date: str, session: str = "morning") -> dict:
+    sc = load_scored(conn, check_date(date), session)
     if sc is None:
-        raise ApiError(404, f"{date} 채점 결과 없음")
+        raise ApiError(404, f"{date} {'저녁 종가매매' if session == 'evening' else '아침'} 채점 결과 없음")
     good = sorted([i for i in sc["items"] if i.get("sentiment") == "호재"],
                   key=lambda i: (-(i.get("final") or 0), -(i.get("final_raw") or 0)))
     bad = [i for i in sc["items"] if i.get("sentiment") == "악재"]
     warnings = []
     if sc.get("window"):
         _, warnings = collect_status(conn, sc["window"])
-    return {"date": date, "window": sc.get("window"), "weights_version": sc.get("weights_version"),
+    return {"date": date, "session": session, "window": sc.get("window"), "weights_version": sc.get("weights_version"),
+            "fallback": bool(sc.get("fallback")), "fallback_reason": sc.get("fallback_reason"),
             "warnings": warnings,
             "bullish": [score_item(conn, it, n) for n, it in enumerate(good, 1)],
             "bearish": [score_item(conn, it, None) for it in bad],
             "reviewed_policies": sc.get("reviewed_policies", []),
-            "report_md_url": f"/api/report/{date}/markdown"}
+            "report_md_url": f"/api/report/{date}/markdown" + ("?session=evening" if session == "evening" else "")}
 
 
 # ---------------------------------------------------------------- 조회 함수
 def ep_health(conn, _p, _m) -> dict:
     last = conn.execute("SELECT MAX(published_at) FROM articles").fetchone()[0]
     last_score = conn.execute("SELECT MAX(date) FROM scores").fetchone()[0]
+    last_evening = conn.execute("SELECT MAX(date) FROM evening_scores").fetchone()[0]
     return {"ok": True, "api_version": API_VERSION, "now": f"{now_kst():%Y-%m-%d %H:%M:%S}",
-            "latest_article": last, "latest_report": last_score}
+            "latest_article": last, "latest_report": last_score, "latest_evening_report": last_evening}
 
 
 def ep_dates(conn, p, _m) -> dict:
     limit = q_int(p, "limit", 60, 1)
+    tbl = TABLE[q_session(p)]
     rows = conn.execute(
-        "SELECT date, SUM(sentiment='호재') AS bullish, SUM(sentiment='악재') AS bearish FROM scores "
+        f"SELECT date, SUM(sentiment='호재') AS bullish, SUM(sentiment='악재') AS bearish FROM {tbl} "
         "GROUP BY date ORDER BY date DESC LIMIT ?", (limit,)).fetchall()
     out = []
     for r in rows:
-        top = conn.execute("SELECT stock_code, stock_name, final FROM scores WHERE date=? AND sentiment='호재' "
+        top = conn.execute(f"SELECT stock_code, stock_name, final FROM {tbl} WHERE date=? AND sentiment='호재' "
                            "ORDER BY final DESC, final_raw DESC LIMIT 3", (r["date"],)).fetchall()
         out.append({"date": r["date"], "bullish": r["bullish"], "bearish": r["bearish"],
                     "top": [{"code": t["stock_code"], "name": t["stock_name"], "final": t["final"]} for t in top]})
@@ -194,14 +219,15 @@ def ep_dates(conn, p, _m) -> dict:
 
 
 def ep_report(conn, p, m) -> dict:
-    date = m[0] if m[0] != "latest" else conn.execute("SELECT MAX(date) FROM scores").fetchone()[0]
+    session = q_session(p)
+    date = m[0] if m[0] != "latest" else conn.execute(f"SELECT MAX(date) FROM {TABLE[session]}").fetchone()[0]
     if not date:
         raise ApiError(404, "채점 결과 없음")
-    return report(conn, date)
+    return report(conn, date, session)
 
 
-def ep_report_md(conn, _p, m) -> dict:
-    path = ROOT / "reports" / f"{check_date(m[0])}.md"
+def ep_report_md(conn, p, m) -> dict:
+    path = report_path(check_date(m[0]), q_session(p))
     if not path.exists():
         raise ApiError(404, "리포트 파일 없음")
     return {"date": m[0], "markdown": path.read_text(encoding="utf-8")}
@@ -328,8 +354,15 @@ def ep_stock(conn, p, m) -> dict:
                         (code,)).fetchall()
     news = conn.execute("SELECT * FROM articles WHERE title LIKE ? OR body LIKE ? ORDER BY published_at DESC LIMIT 30",
                         (f"%{s['name']}%",) * 2).fetchall()
+    evening = [{"date": r["date"], "sentiment": r["sentiment"], "final": r["final"], "final_raw": r["final_raw"],
+                "material": r["material"], "category_name": category_label(r["category"]), "fallback": bool(r["fallback"]),
+                "quote": _quote_from_row(r),
+                # 다음 거래일 반응 (진입가 = 리포트 시각 NXT 가격 대비) — 다음날 20:10 이후 채워짐
+                "next_day": None if r["next_close"] is None else {
+                    "open_ret": r["next_open_ret"], "high_ret": r["next_high_ret"], "close_ret": r["next_close_ret"]}}
+               for r in conn.execute("SELECT * FROM evening_scores WHERE stock_code=? ORDER BY date DESC LIMIT 30", (code,))]
     return {"stock": {**dict(s), "is_listed": bool(s["is_listed"]), "is_excluded": bool(s["is_excluded"])},
-            "themes": themes, "scores": scores,
+            "themes": themes, "scores": scores, "evening_scores": evening,
             "disclosures": [disclosure_out(r) for r in disc], "news": [article_out(r) for r in news]}
 
 
