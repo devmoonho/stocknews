@@ -102,6 +102,9 @@ def render(c: dict) -> str:
     title = [s for s in c["stocks"] if not s["disclosures"] and s["objective"]["diffusion"]["title_mentions"]]
     body_only = [s for s in c["stocks"] if not s["disclosures"] and not s["objective"]["diffusion"]["title_mentions"]]
 
+    tf = c.get("theme_forecast") or {}
+    stock_stages = tf.get("stock_stages") or {}
+
     def head(s: dict) -> str:
         o = s["objective"]
         d = o["diffusion"]
@@ -119,6 +122,9 @@ def render(c: dict) -> str:
         tc = o.get("theme_cluster")
         if tc:
             pre += f" · 테마 결집도 {tc['score']}점"
+        st = stock_stages.get(s["code"])
+        if st:
+            pre += f" · 강세 테마: {', '.join(st)}"
         pr = s.get("price") or {}
         cap = f" · 시총 {_won(pr['market_cap'])}" if pr.get("market_cap") else ""
         return (f"### [S-{s['code']}] {s['name']} ({s['market']}, {s.get('sector') or '-'}){extra}\n"
@@ -219,6 +225,17 @@ def render(c: dict) -> str:
     pend = c.get("followups_pending", [])
     if pend:
         L.append("- 추적 중: " + "; ".join(f"{p['stock_name']} {p['kind']} {p['due_date']}({p['status']})" for p in pend[:12]))
+        L.append("")
+
+    if tf.get("prev_day"):
+        L.append(f"## H. 테마 전망 (객관 지표, 참고만 — 채점 대상 아님) · 전일 {tf['prev_day']}")
+        for it in tf.get("leaders_yday", []):
+            ld = ", ".join(m["name"] or m["code"] for m in it["leader"]) or "-"
+            sec = ", ".join(m["name"] or m["code"] for m in it["seconds"]) or "-"
+            L.append(f"- 어제 주도: {it['name']} · 중앙값 초과 {it['median_excess']:+.1f}%p · {it['stage'] or '-'} · "
+                     f"대장 {ld} · 2등주 {sec}")
+        for i, it in enumerate(tf.get("forecast", []), 1):
+            L.append(f"- 오늘 후보 {i}: {it['name']} · 점수 {it['score']:.2f}({it['confidence']}) · {'; '.join(it.get('basis', []))}")
         L.append("")
 
     return "\n".join(L) + "\n"

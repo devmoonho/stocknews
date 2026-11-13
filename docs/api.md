@@ -21,6 +21,7 @@
 - 잘못된 값이면 400
 
 ### `GET /api/health`
+(추가 필드) `latest_theme_day`(마지막 15:35 테마 집계일), `latest_theme_outlook`(테마 전망이 있는 마지막 대상 거래일).
 연결 확인. `{"ok": true, "api_version": 1, "now": "...", "latest_article": "...", "latest_report": "2026-11-13",
 "latest_evening_report": "2026-11-13"}` (저녁 리포트가 아직 없으면 null)
 
@@ -171,6 +172,67 @@ signal(buy/sell/neutral, 제목 키워드 규칙), confirmed(확정형 재료), 
   "next_day": {"open_ret": 0.031, "high_ret": 0.22, "close_ret": 0.18}}]   // 진입가(리포트 시각 NXT 가격) 대비, 소수.
                                                                             // 다음 거래일 20:10 이후 채워짐(전에는 null)
 ```
+
+### `GET /api/theme-outlook/{YYYY-MM-DD | latest}[?phase=evening|morning]`
+**예측 대상 거래일** 기준 테마 전망(리포트에 실린 것 그대로) + 그날 15:35 채점 결과. 하루에 두 번 만들어진다:
+- `evening` **1차** — 전 거래일 19:30 저녁 종가매매 리포트에 실림(그날 15:35 집계 + 15:30~19:30 재료). 예: 11-13 저녁 → `date` 11-16
+- `morning` **최종** — 그날 07:00 아침 리포트에 실림(밤사이 재료 전부 반영)
+
+`phase`를 빼면 최종이 있으면 최종, 없으면 1차. `latest` = 가장 최근 대상일. 없으면 404.
+아침 리포트 `/api/report/{날짜}` 응답의 `theme_outlook` = 그날 최종, 저녁 리포트 `/api/report/{날짜}?session=evening`의
+`theme_outlook` = 그 저녁에 만든 다음 거래일 1차(없으면 null).
+추가 필드: `phase`, `made_at`(만든 시각), `available_phases`(그 대상일에 있는 단계 목록).
+```json
+{"date": "2026-11-16", "phase": "evening", "made_at": "2026-11-13 19:31", "available_phases": ["evening"],
+ "prev_day": "2026-11-13", "approx": false,
+ "leaders_yday": [{"group_id": "naver:545", "name": "뉴로모픽 반도체", "median_excess": 4.4, "avg_excess": 9.1,
+                   "wavg_excess": 8.0, "rise_ratio": 1.0, "up5": 3, "limit_ups": 1, "stage": "태동", "streak": 1,
+                   "tv_ratio20": 0.7, "leader_changed": 0, "related": ["창투사"], "approx": 0,
+                   "leader":    [{"code": "394280", "name": "오픈엣지테크놀로지", "change_pct": 29.9, "limit_hit": 1,
+                                  "closed_at_limit": 1, "first_hit": "09:02", "nxt": true, "label": "대장"}],
+                   "seconds":   [ /* 2등주, 같은 형식 */ ],
+                   "followers": [ /* 후발주 최대 3, 같은 형식 */ ]}],
+ "small_yday": [{"name": "건설_국내주택", "median_excess": 5.3, "n": 4}],
+ "hedge": {"down_days": 11, "display_only": false,
+           "items": [{"name": "제지_기타", "cum_excess": 31.5, "cum_pct": 1.6, "days": 11, "leader_name": "에스엠국일"}]},
+ "forecast": [{"group_id": "naver:9", "name": "퓨리오사AI", "score": 0.665, "confidence": "상",
+               "components": {"stage": 0.75, "breadth": 0.91, "trade_value": 1.0, "material": 0.0},
+               "basis": ["태동(1일)", "전일 중앙값 초과 +4.2%p·상승 82%", "거래대금 3.3배"],
+               "stage": "태동", "leader_code": "...", "leader_name": "DSC인베스트먼트",
+               "seconds": ["..."], "second_names": ["포바이포", "TS인베스트먼트"],
+               "nxt": {"종목코드": false}, "related": ["창투사"]}],
+ "baseline": [ /* 기준선(어제 상위 유지) 5개, forecast와 같은 형식(점수=전일 중앙값 초과, basis 없음) */ ],
+ "track": {"forecast": {"days": 12, "avg_excess": 0.8, "top10_ratio": 0.46, "leader_ratio": 0.3},
+           "baseline": {"days": 12, "avg_excess": 0.5, "top10_ratio": 0.38, "leader_ratio": 0.25}},
+ "results": [{"kind": "forecast", "dedupe": 1, "n": 5, "avg_excess": 2.1, "top10_hits": 3, "top10_ratio": 0.6,
+              "leader_hits": 2, "leader_n": 5, "second_hits": 3, "second_n": 9}]}
+```
+- `forecast`·`baseline`·`leaders_yday`는 **중복 회피 적용**(대장 같거나 상승 종목이 겹치는 묶음은 `related`로) — 아침 리포트와 같은 목록.
+- `results`는 대상일 15:35 이후에 생긴다(그 전엔 빈 배열, 단계별로 따로 채점). `track`은 같은 단계의 그 전날까지 누적 성적(최근 20일).
+- 저녁 1차의 `leaders_yday`는 "오늘(장 마감) 주도 테마", 아침 최종에서는 "어제 주도 테마" — 같은 집계일(`prev_day`)이다.
+- `nxt`가 false = 종목 마스터상 NXT 거래 불가(실제로 거래되는 경우가 있어 "NXT✕?"로 표시 권장). null = 정보 없음.
+- `%` 값은 퍼센트 단위, `rise_ratio`·`top10_ratio`·`leader_ratio`·`components`는 0~1.
+
+### `GET /api/themes/{YYYY-MM-DD | latest}[?limit=30]`
+그날 15:35 테마 집계(묶음 단위, 중앙값 초과 순위)와 그날 아침 예측·채점.
+```json
+{"date": "2026-11-16", "approx": false, "count": 30,
+ "items": [{"group_id": "naver:123", "group_name": "온디바이스 AI (+유사 1개)", "rank": 1, "n": 24,
+            "median_pct": 6.1, "avg_pct": 8.3, "wavg_pct": 9.0, "median_excess": 5.2, "avg_excess": 7.4, "wavg_excess": 8.1,
+            "rise_ratio": 0.83, "up5": 9, "limit_ups": 2, "trade_value": 1.2e12, "tv_ratio20": 2.4,
+            "concentration": 0.31, "strong": 1, "streak": 2, "cum_excess": 9.1, "stage": "확산",
+            "leader_code": "394280", "leader_changed": 0, "small": 0, "approx": 0,
+            "members": [{"code": "394280", "name": "오픈엣지테크놀로지", "label": "대장", "change_pct": 29.9,
+                         "limit_hit": 1, "first_hit": "09:02", "trade_value": 3.1e11}]}],
+ "forecasts": [{"kind": "forecast", "rank": 1, "group_name": "...", "score": 0.71, "confidence": "상",
+                "components": {"stage": 1.0, "breadth": 0.8, "trade_value": 0.7, "material": 0.25},
+                "leader_pick": "394280", "second_picks": ["399720"], "related": ["HBM"]}],
+ "results": [{"kind": "forecast", "dedupe": 1, "n": 5, "avg_excess": 2.1, "top10_hits": 3, "top10_ratio": 0.6,
+              "leader_hits": 2, "leader_n": 5, "second_hits": 3, "second_n": 9}]}
+```
+- `%` 값은 이미 퍼센트 단위(5.2 = 5.2%), `rise_ratio`·`top10_ratio`는 0~1. `trade_value`는 원.
+- `members`는 라벨(대장/2등주/후발주)이 있는 상위 8종목. `forecasts.kind` = forecast(예측) / baseline(어제 상위 유지).
+- `approx: true`는 통합 일봉으로 근사 재구성한 날(시간외 포함).
 
 ## 예시 (Python 표준 라이브러리)
 ```python

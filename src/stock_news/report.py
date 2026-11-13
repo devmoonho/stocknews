@@ -223,6 +223,85 @@ def evening_section(conn, good: list[dict]) -> list[str]:
     return L
 
 
+def _names_line(ms: list[dict], nxt: bool = False) -> str:
+    out = []
+    for m in ms:
+        t = m.get("name") or m["code"]
+        if m.get("change_pct") is not None:
+            t += f" {m['change_pct']:+.1f}%"
+        if m.get("limit_hit") and m.get("closed_at_limit"):
+            t += "↑"
+        if nxt and m.get("nxt") is False:
+            t += "(NXT✕?)"
+        out.append(t)
+    return ", ".join(out) or "-"
+
+
+def theme_outlook_section(tf: dict | None) -> list[str]:
+    """'테마 전망' — 15:35 테마 집계(묶음 단위) + 재료로 만든 객관 예측.
+    저녁(1차): 오늘 주도 테마 + 내일 주목 후보 · 아침(최종): 어제 주도 테마 + 오늘 주목 후보(밤사이 재료 반영)."""
+    if not tf or not tf.get("prev_day"):
+        return []
+    ev = tf.get("phase") == "evening"
+    day_word, next_word = ("오늘", f"내일({tf['date'][5:]})") if ev else ("어제", "오늘")
+    title = (f"## {next_word} 테마 전망 — 1차 (오늘 장 마감 집계 + 15:30 이후 재료, 아침에 최종 갱신)" if ev
+             else f"## 테마 전망 — 최종 (전일 {tf['prev_day']} 집계 + 밤사이 재료)")
+    L = [title, ""]
+    if any(it.get("approx") for it in tf.get("leaders_yday", [])):
+        L.append(f"<sub>※ {day_word} 지표는 통합 일봉으로 근사 재구성한 값(시간외 포함)입니다.</sub>")
+        L.append("")
+    L.append(f"**{day_word} 주도 테마** (중앙값 초과 순, 비슷한 묶음은 관련 묶음으로)")
+    L.append("")
+    L.append("| 테마 | 중앙값/평균 초과 | 상승 비율·+5% | 단계 | 대장 | 2등주 | 후발주 | 거래대금 |")
+    L.append("|---|---|---|---|---|---|---|---|")
+    for it in tf.get("leaders_yday", []):
+        name = _md(it["name"]) + (f"<br><sub>관련: {_md(', '.join(it['related'][:3]))}</sub>" if it.get("related") else "")
+        stage = f"{it['stage']}({it['streak']}일)" if it.get("stage") else "-"
+        if it.get("leader_changed"):
+            stage += " · 대장 교체"
+        tv = f"{it['tv_ratio20']:.1f}배" if it.get("tv_ratio20") else "-"
+        L.append(f"| {name} | {it['median_excess']:+.1f} / {it['avg_excess']:+.1f}%p | "
+                 f"{round((it['rise_ratio'] or 0) * 100)}% · {it['up5']} | {stage} | {_md(_names_line(it['leader'], True))} | "
+                 f"{_md(_names_line(it['seconds'], True))} | {_md(_names_line(it['followers']))} | {tv} |")
+    L.append("")
+    if tf.get("small_yday"):
+        L.append("- 소형 테마(5종목 미만) 급등: " + ", ".join(f"{_md(x['name'])} {x['median_excess']:+.1f}%p" for x in tf["small_yday"]))
+    h = tf.get("hedge") or {}
+    if h.get("items"):
+        tag = " (하락일 표본 부족 — 표시만)" if h.get("display_only") else ""
+        L.append(f"- 헤지 테마 (최근 지수 하락일 {h['down_days']}일 누적 초과){tag}: " +
+                 ", ".join(f"{_md(x['name'])} 초과 {x['cum_excess']:+.1f}%p·등락 {x.get('cum_pct', 0):+.1f}%(대장 {_md(x.get('leader_name') or '-')})"
+                         for x in h["items"]))
+    L.append("")
+    L.append(f"**{next_word} 주목 테마 후보** (예측 — 대상일 15:35에 실제 결과로 채점)")
+    L.append("")
+    L.append("| 순위 | 테마 | 근거 | 신뢰도 | 대장 후보 | 2등주 후보 |")
+    L.append("|---|---|---|---|---|---|")
+    for i, it in enumerate(tf.get("forecast", []), 1):
+        name = _md(it["name"]) + (f"<br><sub>관련: {_md(', '.join(it['related'][:3]))}</sub>" if it.get("related") else "")
+        nx = it.get("nxt") or {}
+        ld = (it.get("leader_name") or "-") + (" (NXT✕?)" if it.get("leader_code") and nx.get(it["leader_code"]) is False else "")
+        sec = ", ".join((n or c) + (" (NXT✕?)" if nx.get(c) is False else "")
+                        for c, n in zip(it.get("seconds", []), it.get("second_names", []))) or "-"
+        L.append(f"| {i} | {name} | {_md('; '.join(it.get('basis', [])) or '-')} | {it['confidence']} ({it['score']:.2f}) | "
+                 f"{_md(ld)} | {_md(sec)} |")
+    L.append("")
+    tr = tf.get("track") or {}
+    f, b = tr.get("forecast") or {}, tr.get("baseline") or {}
+    if f.get("days"):
+        def pct(v):
+            return "-" if v is None else f"{v * 100:.0f}%"
+        L.append(f"<sub>예측 성적(최근 {f['days']}일, 표본이 적으면 방향 확인용): 상위10 적중 {pct(f['top10_ratio'])} · "
+                 f"평균 초과 {f['avg_excess'] or 0:+.2f}%p · 대장 적중 {pct(f['leader_ratio'])} │ "
+                 f"기준선(어제 상위 유지) 상위10 {pct(b.get('top10_ratio'))} · 평균 초과 {b.get('avg_excess') or 0:+.2f}%p</sub>")
+    else:
+        L.append("<sub>예측 성적: 아직 채점 기록 없음(첫 15:35 집계 뒤부터 쌓임). 표본이 쌓이기 전에는 방향 확인용.</sub>")
+    L.append("<sub>점수 = 단계·폭·거래대금 증가·밤사이 재료(정책·기사·공시)의 같은 가중 평균. 신뢰도 = 0.5 이상인 근거 수. "
+             "NXT✕? = 종목 마스터상 NXT 거래 불가(실제로 거래되는 경우가 있어 확인 필요).</sub>")
+    L.append("")
+    return L
+
+
 def render(conn, scored: dict, candidates: dict) -> str:
     date = scored["date"]
     w = scored["window"]
@@ -274,6 +353,7 @@ def render(conn, scored: dict, candidates: dict) -> str:
         L.append("| 오늘의 판단 | 공격 / 중립 / 관망 |  |")
     L.append("")
 
+    L += theme_outlook_section(candidates.get("theme_forecast"))
     # ------------------------------------------------------------ 순위표
     L.append("## 호재 종목 (점수 높은 순)")
     L.append("")

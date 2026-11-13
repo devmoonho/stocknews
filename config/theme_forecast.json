@@ -1,0 +1,39 @@
+{
+ "_note": "테마 묶기·상위 선정·아침 예측 설정. 예측 가중치는 처음엔 같게 두고, 주간 리뷰 적중률을 보고 사람이 조정한다.",
+ "groups": {
+  "overlap": 0.6,
+  "size_ratio": 0.5,
+  "union_cap": 2.0,
+  "min_members": 5,
+  "warn_members": 150
+ },
+ "dedupe_top": true,
+ "dedupe_overlap": 0.5,
+ "dedupe_rise_pct": 5.0,
+ "top_n": 5,
+ "hit_top_n": 10,
+ "candidate_pool": 20,
+ "weights": {
+  "stage": 1.0,
+  "breadth": 1.0,
+  "trade_value": 1.0,
+  "material": 1.0
+ },
+ "stage_points": {
+  "확산": 1.0,
+  "태동": 0.75,
+  "과열": 0.35,
+  "소멸": 0.0
+ },
+ "material_points": {
+  "gov": 2,
+  "title": 1,
+  "disclosure": 1
+ },
+ "hedge_lookback": 20,
+ "hedge_min_down_days": 3,
+ "intraday_top_groups": 20,
+ "intraday_per_group": 5,
+ "stage_bonus": false,
+ "_stage_bonus_note": "stage_bonus(강세 테마 소속 종목 새 재료에 테마 결집도 +1)는 아직 꺼 둠·미구현. 2주 검증에서 단계가 다음날 성과를 가르면 채점표 v4로 구현한다."
+}

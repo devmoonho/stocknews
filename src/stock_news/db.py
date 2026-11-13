@@ -200,6 +200,73 @@ CREATE TABLE IF NOT EXISTS factor_corr_history (  -- 주간 리뷰의 항목별 
     week_end TEXT NOT NULL, target TEXT NOT NULL, factor TEXT NOT NULL, n INTEGER, rho REAL,
     PRIMARY KEY (week_end, target, factor)
 );
+-- ---- 테마 선행 예측 (scripts/theme_daily.py 15:35 · analysis/theme_forecast.py 07:00)
+CREATE TABLE IF NOT EXISTS theme_groups (        -- 구성이 사실상 같은 테마 묶음(대표 중심 묶기, 사슬 연결 없음)
+    group_id      TEXT NOT NULL,                 -- 대표 테마 'source:theme_code' (날마다 같은 ID)
+    source        TEXT NOT NULL, theme_code TEXT NOT NULL,
+    is_rep        INTEGER,                       -- 1 = 대표 테마
+    group_name    TEXT,                          -- '대표 테마명 (+유사 N개)'
+    member_count  INTEGER,                       -- 묶음 구성 종목 수
+    theme_count   INTEGER,                       -- 묶음에 든 테마 수
+    members       TEXT,                          -- JSON 종목코드 목록(묶음 구성)
+    updated_at    TEXT,
+    PRIMARY KEY (source, theme_code)
+);
+CREATE TABLE IF NOT EXISTS market_daily (        -- 전 종목 KRX 장 마감 스냅샷 (ka10032, 15:31~15:59)
+    dt TEXT NOT NULL, code TEXT NOT NULL,
+    close REAL, change_pct REAL,                 -- KRX 종가, 기준가 대비 %
+    trade_value REAL,                            -- 거래대금(원)
+    volume REAL,
+    approx INTEGER DEFAULT 0,                    -- 1 = 통합 일봉으로 근사 재구성(--rebuild)
+    PRIMARY KEY (dt, code)
+);
+CREATE TABLE IF NOT EXISTS theme_daily (         -- 테마 묶음별 하루 지표
+    dt TEXT NOT NULL, group_id TEXT NOT NULL,
+    group_name TEXT, n INTEGER,                  -- 시세가 있는 구성 종목 수
+    avg_pct REAL, median_pct REAL, wavg_pct REAL,          -- 단순 평균 · 중앙값 · 거래대금 가중
+    avg_excess REAL, median_excess REAL, wavg_excess REAL, -- 지수(종목 시장) 대비 초과
+    rise_ratio REAL, up5 INTEGER, limit_ups INTEGER,
+    trade_value REAL, tv_ratio20 REAL,           -- 거래대금 합계, 직전 20거래일 평균 대비
+    concentration REAL,                          -- 상위 2종목이 테마 상승분에서 차지하는 비율(폭 지표)
+    strong INTEGER, streak INTEGER, cum_excess REAL,
+    stage TEXT,                                  -- 태동/확산/과열/소멸/NULL
+    leader_code TEXT, leader_changed INTEGER,
+    rank INTEGER,                                -- 중앙값 초과 순위(5종목 이상 묶음만)
+    small INTEGER,                               -- 1 = 5종목 미만(순위·예측 제외)
+    approx INTEGER DEFAULT 0,
+    PRIMARY KEY (dt, group_id)
+);
+CREATE TABLE IF NOT EXISTS theme_members_daily ( -- 묶음 안 종목 서열
+    dt TEXT NOT NULL, group_id TEXT NOT NULL, code TEXT NOT NULL,
+    change_pct REAL, excess REAL, trade_value REAL,
+    limit_hit INTEGER, first_hit TEXT, closed_at_limit INTEGER,
+    streak INTEGER, pos INTEGER, label TEXT,     -- 대장 / 2등주 / 후발주 / NULL
+    after_leader_pct REAL,                       -- 대장 상한가 도달 뒤 이 종목의 추가 상승(2등주, D0)
+    next_change_pct REAL, next_excess REAL,      -- D+1 (다음 날 집계 때 채움)
+    PRIMARY KEY (dt, group_id, code)
+);
+CREATE TABLE IF NOT EXISTS theme_forecasts (     -- 테마 예측(kind=forecast)과 기준선(kind=baseline)
+    date TEXT NOT NULL,                          -- 예측 대상 거래일
+    phase TEXT NOT NULL DEFAULT 'morning',       -- evening = 전날 19:30 1차(종가매매 리포트) · morning = 그날 07:00 최종
+    kind TEXT NOT NULL, rank INTEGER NOT NULL,
+    group_id TEXT, group_name TEXT, score REAL, components TEXT, confidence TEXT,
+    leader_pick TEXT, second_picks TEXT,         -- 종목코드, JSON 목록
+    related TEXT,                                -- 중복 회피로 건너뛴 관련 묶음 이름 JSON
+    dedupe INTEGER NOT NULL DEFAULT 1,           -- 1 = 중복 회피 적용 목록, 0 = 미적용(비교용)
+    created_at TEXT,
+    PRIMARY KEY (date, phase, kind, dedupe, rank)
+);
+CREATE TABLE IF NOT EXISTS theme_forecast_results (  -- 예측 적중 판정 (그날 15:35 집계 뒤)
+    date TEXT NOT NULL, phase TEXT NOT NULL DEFAULT 'morning', kind TEXT NOT NULL, dedupe INTEGER NOT NULL,
+    n INTEGER, avg_excess REAL, top10_hits INTEGER, top10_ratio REAL,
+    leader_hits INTEGER, leader_n INTEGER, second_hits INTEGER, second_n INTEGER,
+    detail TEXT, updated_at TEXT,
+    PRIMARY KEY (date, phase, kind, dedupe)
+);
+CREATE TABLE IF NOT EXISTS theme_runs (          -- 15:35/15:50 집계 실행 기록(재시도 판단)
+    dt TEXT NOT NULL, started_at TEXT, finished_at TEXT, ok INTEGER, note TEXT
+);
+
 CREATE TABLE IF NOT EXISTS weight_history (    -- 주간 가중치 조절 기록
     version       INTEGER PRIMARY KEY,
     applied_at    TEXT, target TEXT, sample_n INTEGER,
@@ -224,7 +291,7 @@ CREATE TABLE IF NOT EXISTS collect_runs (
 
 def connect(path: Path = DB_PATH) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=120)      # 다른 작업(일봉 백필 등)이 쓰는 중이면 기다림
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     _migrate(conn)
@@ -257,6 +324,14 @@ def _migrate(conn: sqlite3.Connection) -> None:
         if cols and col not in cols:
             conn.execute(f"ALTER TABLE price_reactions ADD COLUMN {col} {typ}")
     conn.commit()
+    for t in ("theme_forecasts", "theme_forecast_results"):   # 저녁 1차/아침 최종 구분(phase) 전 버전 — 키가 바뀌어 다시 만든다
+        cols = {r[1] for r in conn.execute(f"PRAGMA table_info({t})")}
+        if cols and "phase" not in cols:
+            if conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]:
+                conn.execute(f"ALTER TABLE {t} RENAME TO {t}_old")
+            else:
+                conn.execute(f"DROP TABLE {t}")
+            conn.commit()
     cols = {r[1] for r in conn.execute("PRAGMA table_info(scores)")}
     if cols and "rubric_version" not in cols:       # 어떤 채점표 버전으로 채점했나 (v2: 재료의 질·선반영 추가)
         conn.execute("ALTER TABLE scores ADD COLUMN rubric_version INTEGER")

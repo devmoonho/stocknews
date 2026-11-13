@@ -59,6 +59,14 @@ def render(conn, scored: dict, candidates: dict, top_n: int = 7, warnings: list[
         L.append("<b>정책</b>")
         for r in picked[:3]:
             L.append(f"• {e(r['title'])} → {e(', '.join(names.get(c, c) for c in r['picked']))}")
+    tf = candidates.get("theme_forecast")
+    if tf and tf.get("forecast"):
+        L.append("")
+        L.append(f"<b>내일({e(tf['date'][5:])}) 주목 테마 (1차 예측)</b>" if tf.get("phase") == "evening"
+                 else "<b>오늘 주목 테마 (예측)</b>")
+        for it in tf["forecast"][:3]:
+            basis = "; ".join(it.get("basis", [])[:2]) or "-"
+            L.append(f"• {e(it['name'])} — {e(basis)} · 대장 {e(it.get('leader_name') or '-')} ({e(it['confidence'])})")
     L.append("")
     L.append("<i>재료 강도 점수이며 매수 추천 아님. " +
              ("시간외 가격은 리포트 시각 기준, NXT 마감 20:00.</i>" if evening else "장 시작 전 지수·수급 확인.</i>"))

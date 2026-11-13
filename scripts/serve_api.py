@@ -95,6 +95,10 @@ def check_code(code: str) -> str:
 def check_date(date: str) -> str:
     if not re.match(r"^\d{4}-\d{2}-\d{2}$", date or ""):
         raise ApiError(400, "날짜 형식: YYYY-MM-DD")
+    try:
+        dt.date.fromisoformat(date)          # 2026-13-99 같은 없는 날짜
+    except ValueError:
+        raise ApiError(400, "없는 날짜") from None
     return date
 
 
@@ -191,6 +195,10 @@ def report(conn, date: str, session: str = "morning") -> dict:
             "bullish": [score_item(conn, it, n) for n, it in enumerate(good, 1)],
             "bearish": [score_item(conn, it, None) for it in bad],
             "reviewed_policies": sc.get("reviewed_policies", []),
+            # 아침 = 그날 최종 전망, 저녁 = 다음 거래일 1차 전망(그 저녁 리포트에 실린 것)
+            "theme_outlook": (theme_outlook(conn, date, "morning") if session == "morning" else
+                              (lambda tf: _outlook_out(conn, tf) if tf else None)(
+                                  _outlook_file(session_dir(date, "evening") / "candidates.json"))),
             "report_md_url": f"/api/report/{date}/markdown" + ("?session=evening" if session == "evening" else "")}
 
 
@@ -199,8 +207,11 @@ def ep_health(conn, _p, _m) -> dict:
     last = conn.execute("SELECT MAX(published_at) FROM articles").fetchone()[0]
     last_score = conn.execute("SELECT MAX(date) FROM scores").fetchone()[0]
     last_evening = conn.execute("SELECT MAX(date) FROM evening_scores").fetchone()[0]
+    last_theme = conn.execute("SELECT MAX(dt) FROM theme_daily").fetchone()[0]
+    last_outlook = conn.execute("SELECT MAX(date) FROM theme_forecasts").fetchone()[0]
     return {"ok": True, "api_version": API_VERSION, "now": f"{now_kst():%Y-%m-%d %H:%M:%S}",
-            "latest_article": last, "latest_report": last_score, "latest_evening_report": last_evening}
+            "latest_article": last, "latest_report": last_score, "latest_evening_report": last_evening,
+            "latest_theme_day": last_theme, "latest_theme_outlook": last_outlook}
 
 
 def ep_dates(conn, p, _m) -> dict:
@@ -391,8 +402,94 @@ def ep_stocks(conn, p, _m) -> dict:
     return {"count": len(items), "items": items}
 
 
+PHASES = ("evening", "morning")
+
+
+def _outlook_file(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    tf = json.loads(path.read_text(encoding="utf-8")).get("theme_forecast")
+    return tf if tf and tf.get("prev_day") else None
+
+
+def _outlook_out(conn, tf: dict) -> dict:
+    out = {k: tf.get(k) for k in ("date", "phase", "made_at", "prev_day", "leaders_yday", "small_yday", "hedge",
+                                  "forecast", "baseline", "track")}
+    out["phase"] = out.get("phase") or "morning"
+    out["approx"] = any(it.get("approx") for it in tf.get("leaders_yday") or [])
+    out["results"] = [dict(r) for r in conn.execute(
+        "SELECT phase, kind, dedupe, n, avg_excess, top10_hits, top10_ratio, leader_hits, leader_n, second_hits, second_n "
+        "FROM theme_forecast_results WHERE date=? AND phase=? ORDER BY kind, dedupe DESC", (tf["date"], out["phase"]))]
+    return out
+
+
+def theme_outlook(conn, date: str, phase: str | None = None) -> dict | None:
+    """예측 대상 거래일 date의 테마 전망. phase: evening(전날 19:30 1차, 종가매매 리포트) / morning(그날 07:00 최종).
+    phase가 없으면 최종(아침)이 있으면 그것, 없으면 1차(저녁)."""
+    from stock_news.timewindow import load_holidays, prev_trading_day
+    paths = {"morning": session_dir(date, "morning") / "candidates.json",
+             "evening": session_dir(f"{prev_trading_day(dt.date.fromisoformat(date), load_holidays()):%Y-%m-%d}",
+                                    "evening") / "candidates.json"}
+    for ph in ([phase] if phase else ["morning", "evening"]):
+        tf = _outlook_file(paths[ph])
+        if tf and tf.get("date") == date:
+            return _outlook_out(conn, tf)
+    return None
+
+
+def ep_outlook(conn, p, m) -> dict:
+    phase = q1(p, "phase")
+    if phase and phase not in PHASES:
+        raise ApiError(400, "phase는 evening 또는 morning")
+    date = m[0]
+    if date == "latest":
+        date = conn.execute("SELECT MAX(date) FROM theme_forecasts" + (" WHERE phase=?" if phase else ""),
+                            (phase,) if phase else ()).fetchone()[0]
+        if not date:
+            raise ApiError(404, "테마 전망 없음(평일 19:30 저녁 1차 · 07:00 아침 최종 뒤 생성)")
+    out = theme_outlook(conn, check_date(date), phase)
+    if not out:
+        raise ApiError(404, "그날 테마 전망 없음")
+    out["available_phases"] = [r[0] for r in conn.execute(
+        "SELECT DISTINCT phase FROM theme_forecasts WHERE date=?", (date,))]
+    return out
+
+
+def ep_themes(conn, p, m) -> dict:
+    """테마 묶음 집계(15:35) + 그날 아침 예측·채점. date=latest면 마지막 집계일."""
+    date = m[0] if m[0] != "latest" else conn.execute("SELECT MAX(dt) FROM theme_daily").fetchone()[0]
+    if not date:
+        raise ApiError(404, "테마 집계 없음")
+    limit = q_int(p, "limit", 30, 1, 400)
+    rows = conn.execute("SELECT * FROM theme_daily WHERE dt=? AND rank IS NOT NULL ORDER BY rank LIMIT ?",
+                        (date, limit)).fetchall()
+    items = []
+    for r in rows:
+        ms = conn.execute("SELECT t.*, s.name FROM theme_members_daily t LEFT JOIN stocks s ON s.code=t.code "
+                          "WHERE t.dt=? AND t.group_id=? AND t.label IS NOT NULL ORDER BY t.pos LIMIT 8",
+                          (date, r["group_id"])).fetchall()
+        d = {k: r[k] for k in r.keys() if k not in ("dt",)}
+        d["members"] = [{"code": x["code"], "name": x["name"], "label": x["label"], "change_pct": x["change_pct"],
+                         "limit_hit": x["limit_hit"], "first_hit": x["first_hit"], "trade_value": x["trade_value"]}
+                        for x in ms]
+        items.append(d)
+    fc = [dict(r) for r in conn.execute("SELECT * FROM theme_forecasts WHERE date=? AND dedupe=1 ORDER BY kind, rank",
+                                         (date,))]
+    res = [dict(r) for r in conn.execute("SELECT * FROM theme_forecast_results WHERE date=?", (date,))]
+    for f in fc:
+        for k in ("components", "second_picks", "related"):
+            try:
+                f[k] = json.loads(f[k]) if f[k] else None
+            except ValueError:
+                pass
+    return {"date": date, "approx": bool(rows and rows[0]["approx"]), "count": len(items), "items": items,
+            "forecasts": fc, "results": res}
+
+
 ROUTES: list[tuple[re.Pattern, callable]] = [
     (re.compile(r"^/api/stocks$"), ep_stocks),
+    (re.compile(r"^/api/themes/(latest|\d{4}-\d{2}-\d{2})$"), ep_themes),
+    (re.compile(r"^/api/theme-outlook/(latest|\d{4}-\d{2}-\d{2})$"), ep_outlook),
     (re.compile(r"^/api/health$"), ep_health),
     (re.compile(r"^/api/dates$"), ep_dates),
     (re.compile(r"^/api/report/(latest|\d{4}-\d{2}-\d{2})$"), ep_report),

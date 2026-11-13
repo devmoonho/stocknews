@@ -1,0 +1,10 @@
+{
+ "_note": "테마 진행 단계 기준. 주간 리뷰 결과를 보고 사람이 조정한다(채점 중·집계 중 자동 변경 없음).",
+ "strong_median_excess": 2.0,
+ "strong_rise_ratio": 0.6,
+ "spread_max_days": 3,
+ "overheat_days": 4,
+ "overheat_concentration": 0.6,
+ "up5_pct": 5.0,
+ "streak_rise_pct": 0.0
+}

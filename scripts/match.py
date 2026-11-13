@@ -27,6 +27,15 @@ from stock_news.prices import ensure_daily  # noqa: E402
 from stock_news.timewindow import Window, default_window, now_kst  # noqa: E402
 
 
+def next_trading_day(d: dt.date) -> dt.date:
+    from stock_news.timewindow import is_trading_day
+    hol = load_holidays()
+    d += dt.timedelta(days=1)
+    while not is_trading_day(d, hol):
+        d += dt.timedelta(days=1)
+    return d
+
+
 def attach_evening_quotes(conn, result: dict, date: str) -> int:
     """공시·제목 기사가 있는 후보 종목에 1분봉 시세(오늘 KRX 종가·지금 NXT 가격·시간외 등락)를 붙이고 선반영을 다시 계산."""
     from stock_news import prices
@@ -91,6 +100,24 @@ def main() -> int:
     if not a.out and a.session == "morning":      # 후속 이벤트 상태(followups)는 아침 실제 실행에서만 갱신
         result = build(conn, window, write_followups=True)
     result["session"] = a.session
+    # 테마 전망: 직전 15:35 테마 집계 + 재료 → 예측 대상 거래일의 주목 테마
+    #   아침 = 오늘(최종, 밤사이 재료 전부) · 저녁 = 다음 거래일(1차, 15:30 이후 재료) — 종가매매 리포트에 넣는다
+    if True:
+        from stock_news.analysis import theme_forecast
+        if a.session == "evening":
+            target, phase = next_trading_day(window.end.date()), "evening"
+        else:
+            target, phase = window.report_date, "morning"
+        try:
+            result["theme_forecast"] = theme_forecast.forecast(conn, f"{target:%Y-%m-%d}", result,
+                                                               save=not a.out, phase=phase)
+            tf = result["theme_forecast"]
+            print(f"테마 전망({'저녁 1차' if phase == 'evening' else '아침 최종'}, 대상 {target:%Y-%m-%d}): "
+                  f"기준 집계 {tf['prev_day'] or '없음'} · 주도 {len(tf['leaders_yday'])} · 예측 {len(tf['forecast'])}")
+        except Exception as e:  # noqa: BLE001 — 테마 전망 실패로 리포트를 막지 않는다
+            result["theme_forecast"] = None
+            warn = 2
+            print(f"⚠️  테마 전망 계산 실패: {e!r}")
     if a.session == "evening" and not a.no_prices and not a.no_quotes:
         n = attach_evening_quotes(conn, result, f"{window.end:%Y-%m-%d}")
         print(f"시간외 시세: {n}종목 (공시·제목 기사 종목)")

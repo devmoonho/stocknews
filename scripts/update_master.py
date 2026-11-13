@@ -56,6 +56,7 @@ def main() -> int:
     conn = db.connect()
     client = None
     results = []
+    ran: set[str] = set()
     for name, mod, needs_kiwoom in (("stocks", stocks, True), ("themes", themes, True),
                                     ("naver_themes", naver_themes, False)):
         if a.only and a.only != name:
@@ -67,6 +68,11 @@ def main() -> int:
         if needs_kiwoom and client is None:
             client = KiwoomClient()
         results.append(mod.update(conn, client))
+        ran.add(name)
+
+    if ran & {"themes", "naver_themes"}:
+        from stock_news.analysis import theme_groups
+        theme_groups.rebuild(conn)                   # 테마 구성이 바뀌었을 수 있음 → 묶음 다시 계산(같으면 ID 그대로)
 
     warnings = [w for r in results for w in r["warnings"]]
     if warnings:

@@ -17,7 +17,7 @@ from email.utils import formataddr, formatdate, make_msgid
 
 from .analysis.scoring import WEIGHTS
 from .report import (FACTOR_LABELS, SOURCE_NAMES, basis_tags, collect_status, disclosure_rows, figures_text,
-                     theme_bundles,
+                     theme_bundles, _names_line,
                      resolve_sources)
 
 # 색 (밝은 배경 기준 — 대부분 메일 앱의 다크모드는 자동 반전)
@@ -67,6 +67,60 @@ def _tags(tags: list[str]) -> str:
 
 def _link(name: str, url: str) -> str:
     return f'<a href="{e(url)}" style="color:{ACCENT};text-decoration:none;">{e(name)}</a>'
+
+
+def _note(text: str) -> str:
+    return f'<tr><td style="font-size:11px;color:{MUTED};padding-top:6px;line-height:1.5;">{text}</td></tr>'
+
+
+def theme_outlook_html(tf: dict | None) -> list[str]:
+    """메일 '테마 전망' (report.theme_outlook_section과 같은 내용, 저녁 1차/아침 최종)."""
+    if not tf or not tf.get("prev_day"):
+        return []
+    ev = tf.get("phase") == "evening"
+    day_word, next_word = ("오늘", f"내일({tf['date'][5:]})") if ev else ("어제", "오늘")
+    R = [_h2(f"{next_word} 테마 전망 — 1차 (장 마감 집계 + 15:30 이후 재료)" if ev
+             else f"테마 전망 — 최종 (전일 {tf['prev_day']} 집계 + 밤사이 재료)")]
+    sub = lambda t: f'<br><span style="color:{MUTED};font-size:11px;">{e(t)}</span>'  # noqa: E731
+    rows = []
+    for it in tf.get("leaders_yday", []):
+        stage = f"{it['stage']}({it['streak']}일)" if it.get("stage") else "-"
+        if it.get("leader_changed"):
+            stage += " · 대장 교체"
+        rows.append([f"<b>{e(it['name'])}</b>" + (sub("관련: " + ", ".join(it["related"][:3])) if it.get("related") else ""),
+                     f"{it['median_excess']:+.1f}%p" + sub(f"상승 {round((it['rise_ratio'] or 0) * 100)}% · +5% {it['up5']}"
+                                                           + (f" · 거래대금 {it['tv_ratio20']:.1f}배" if it.get('tv_ratio20') else "")),
+                     e(stage),
+                     "대장 " + e(_names_line(it["leader"], True)) + sub("2등 " + _names_line(it["seconds"], True))
+                     + sub("후발 " + _names_line(it["followers"]))])
+    if rows:
+        R.append(f'<tr><td style="font-size:13px;font-weight:600;padding-top:8px;">{day_word} 주도 테마</td></tr>')
+        R.append(_table(["테마", "중앙값 초과", "단계", "서열"], rows, ["30%", "22%", "14%", "34%"]))
+    h = tf.get("hedge") or {}
+    if h.get("items"):
+        R.append(_note("헤지 테마(지수 하락일 " + str(h["down_days"]) + "일 누적" + (", 표시만" if h.get("display_only") else "")
+                       + "): " + e(", ".join(f"{x['name']} 초과 {x['cum_excess']:+.1f}%p·등락 {x.get('cum_pct', 0):+.1f}%" for x in h["items"]))))
+    rows = []
+    for i, it in enumerate(tf.get("forecast", []), 1):
+        nx = it.get("nxt") or {}
+        ld = (it.get("leader_name") or "-") + (" (NXT✕?)" if it.get("leader_code") and nx.get(it["leader_code"]) is False else "")
+        sec = ", ".join((n or c) + (" (NXT✕?)" if nx.get(c) is False else "")
+                        for c, n in zip(it.get("seconds", []), it.get("second_names", []))) or "-"
+        rows.append([str(i), f"<b>{e(it['name'])}</b>" + (sub("관련: " + ", ".join(it["related"][:3])) if it.get("related") else ""),
+                     e("; ".join(it.get("basis", [])) or "-"), f"{e(it['confidence'])}" + sub(f"{it['score']:.2f}"),
+                     e(ld) + sub("2등 " + sec)])
+    if rows:
+        R.append(f'<tr><td style="font-size:13px;font-weight:600;padding-top:12px;">{next_word} 주목 테마 후보 (예측)</td></tr>')
+        R.append(_table(["#", "테마", "근거", "신뢰도", "대장·2등 후보"], rows, ["5%", "25%", "38%", "10%", "22%"]))
+    f = (tf.get("track") or {}).get("forecast") or {}
+    b = (tf.get("track") or {}).get("baseline") or {}
+    if f.get("days"):
+        R.append(_note(f"예측 성적(최근 {f['days']}일, 방향 확인용): 상위10 적중 {round((f['top10_ratio'] or 0) * 100)}% · "
+                       f"기준선 {round((b.get('top10_ratio') or 0) * 100)}%"))
+    else:
+        R.append(_note("예측 성적: 아직 채점 기록 없음 — 표본이 쌓이기 전에는 방향 확인용."))
+    R.append(_note("NXT✕? = 종목 마스터상 NXT 거래 불가(실제로 거래되는 경우가 있어 확인 필요)."))
+    return R
 
 
 def render_html(conn, scored: dict, candidates: dict) -> str:
@@ -145,6 +199,7 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
         ["오늘의 판단", "공격 / 중립 / 관망", blank],
     ], ["22%", "48%", "30%"]))
 
+    R += theme_outlook_html(candidates.get("theme_forecast"))
     # 순위표
     R.append(_h2(f"호재 종목 ({len(good)})"))
     if good:

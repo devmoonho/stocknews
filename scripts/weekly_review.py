@@ -68,6 +68,11 @@ def main() -> int:
     persist_md = persistence.render(conn, f"{end}")
     md = md.replace("## 항목별 상관", persist_md + "\n" + persistence.render_intraday(conn, f"{end}") + "\n"
                     + persistence.render_leaders(conn, f"{end}") + "\n## 항목별 상관", 1)
+    from stock_news.analysis import theme_review     # 테마 예측 성적(예측 vs 기준선, 단계·서열별 다음날)
+    try:
+        md = md.replace("## 항목별 상관", theme_review.render(conn, f"{end}") + "\n## 항목별 상관", 1)
+    except Exception as e:  # noqa: BLE001 — 테마 섹션 실패로 주간 리뷰를 막지 않는다
+        print(f"⚠️  테마 예측 섹션 실패: {e!r}")
     out_dir = REPORTS_DIR / "weekly"
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{end}.md"

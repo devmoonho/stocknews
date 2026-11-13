@@ -42,9 +42,25 @@
 - 자동: 19:10 `evening_auto.py --prefetch`, 19:30 `evening_auto.py` — Claude 채점은 19:42:30까지만 기다리고
   못 끝내면 객관 지표 간이 리포트로 대체해 19:45 전에 보낸다.
 
+## 테마 전망 (선행 예측 1차 — 객관 지표, Claude 채점 아님)
+- 평일 15:35 `scripts/theme_daily.py`(실패 시 15:50 `--retry`, 또 실패하면 텔레그램 알림)
+  - 전 종목 KRX 스냅샷(ka10032)은 **16:00 전에** 받아야 한다(이후엔 시간외 가격이 섞임 → 저장 안 함)
+  - 테마 묶음(`theme_groups`, 대표 중심·사슬 연결 없음·크기 비율 0.5)별 평균·중앙값·거래대금 가중 초과, 폭, 단계(태동/확산/과열/소멸),
+    서열(대장/2등주/후발주) → `theme_daily`·`theme_members_daily`, 그날 아침 예측 채점 → `theme_forecast_results`
+- 테마 전망은 하루 두 번(`theme_forecasts.phase`, 대상 = 예측할 거래일):
+  - 19:30 저녁 `match.py --session evening` → 다음 거래일 **1차**(15:30~19:30 재료) → 종가매매 리포트·메일·텔레그램
+  - 07:00 아침 `match.py` → 그날 **최종**(밤사이 재료 전부) → 아침 리포트 "테마 전망", 텔레그램 상위 3개, 다이제스트 H(참고만)
+  - 계산은 0.1초(키움 요청 없음). 대상일 15:35에 1차·최종 각각 채점 → 주간 리뷰에서 비교
+  - 상위 선정은 대장 같거나 상승 종목 겹치는 묶음을 건너뜀(`dedupe_top`). API `/api/theme-outlook`
+- 설정 `config/theme_forecast.json`·`config/theme_lifecycle.json` — 사람이 주간 리뷰를 보고만 바꾼다
+- 테마 전망은 **채점에 넣지 않는다**(`stage_bonus` false). 다이제스트의 "강세 테마" 표시는 참고만
+- 근사 재구성: `scripts/backfill_trade_value.py`(1회) → `theme_daily.py --rebuild-from 날짜`(통합 일봉 기반 approx=1)
+- 2차(원인·지속성·이벤트 달력)·3차(키움 미국 TR usa10101/10102 — URI 확인 필요)는 아직
+
 ## 자동 실행 (미니PC cron)
 - 평일 07:00 `scripts/morning_auto.py` — 1~8단계 전체(채점은 `claude -p`). 실패 시 텔레그램 알림. 로그 `data/logs/`
 - 평일 19:10 `scripts/evening_auto.py --prefetch`, 19:30 `scripts/evening_auto.py` — 저녁 종가매매 리포트
+- 평일 15:35·15:50 `scripts/theme_daily.py` — 테마 집계·예측 채점 (위 "테마 전망")
 - 평일 20:10 `scripts/track_prices.py` — 채점 종목·비교 기준 종목의 주가 반응 기록(`price_reactions`),
   장중 상한가 도달·해제·재도달(`intraday_patterns`, 1분봉)
 - 토요일 08:00 `scripts/weekly_review.py` — 점수별·근거별 실제 반응 집계, **재료 유형·근거별 영향 지속성(D0~D+10 경로, 정점·반감일)**,
@@ -81,7 +97,8 @@
 
 ## 데이터 위치
 - `data/stock_news.db` — articles, disclosures, stocks, themes, theme_stocks, scores, collect_runs,
-  price_daily, index_daily, price_reactions, price_paths, intraday_patterns, followups, weight_history
+  price_daily, index_daily, price_reactions, price_paths, intraday_patterns, followups, weight_history,
+  theme_groups, market_daily, theme_daily, theme_members_daily, theme_forecasts, theme_forecast_results, theme_runs
   - 호재 여부와 상관없이 수집한 것은 전부 저장(백테스트용). 지우지 않는다.
 - `data/work/YYYY-MM-DD/` — 그날의 덤프·후보·채점 파일
 - `reports/YYYY-MM-DD.md` — 최종 리포트
