@@ -29,7 +29,7 @@ def load_env(path: Path = ROOT / ".env") -> None:
 
 
 SESSIONS = ("morning", "evening")      # 아침 장전 리포트 / 저녁 종가매매 리포트
-WORK_SESSIONS = SESSIONS + ("preopen",)  # + 장 전 추가(07:45, 07:00 이후 새 공시·정책만 — 별도 리포트 없이 알림·API)
+WORK_SESSIONS = SESSIONS + ("preopen",)  # + 장 전 추가(07:50 + 08:00 재확인, 07:00 이후 새 공시·정책만 — 별도 리포트 없이 알림·API)
 
 
 def session_dir(date: str, session: str = "morning") -> Path:

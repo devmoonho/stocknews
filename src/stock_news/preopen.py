@@ -1,6 +1,6 @@
-"""장 전 추가(평일 07:45) — 아침 리포트(07:00) 뒤 07:00~지금 새로 나온 공시·정책만 채점한 결과 읽기·알림 문구.
+"""장 전 추가(평일 07:50 본 실행 + 08:00 재확인) — 아침 리포트(07:00) 뒤 07:00~지금 새로 나온 공시·정책만 채점한 결과 읽기·알림 문구.
 
-결과 파일: data/work/날짜_preopen/
+결과 파일: data/work/날짜_preopen/ (07:50 본 실행), data/work/날짜_preopen/recheck/ (08:00 재확인 — 같은 형식)
   - status.json : {status: 없음|있음|실패, window, fallback, fallback_reason, counts, finished_at}
   - scored.json : score.py --session preopen 결과(아침과 같은 채점 규칙). DB preopen_scores
 아침 리포트는 다시 만들지 않는다. API /api/report/{날짜}의 pre_open_additions, 텔레그램 '장 전 추가' 알림에 쓴다.
@@ -31,13 +31,11 @@ def first_posted_at(conn, it: dict) -> str | None:
     return min(times) if times else None
 
 
-def load(conn, date: str) -> dict:
-    """→ {status, window, fallback, items[...]} — status: 실행 전 / 없음 / 있음 / 실패."""
+def _part(conn, work) -> dict | None:
     from .report import basis_labels, basis_tags
-    work = session_dir(date, "preopen")
     st_path = work / STATUS_FILE
     if not st_path.exists():
-        return {"status": "실행 전", "window": None, "fallback": False, "items": [], "counts": None}
+        return None
     st = json.loads(st_path.read_text(encoding="utf-8"))
     items = []
     scored = work / "scored.json"
@@ -48,10 +46,40 @@ def load(conn, date: str) -> dict:
                           "category": it.get("category"), "basis": basis_tags(conn, it),
                           "basis_labels": basis_labels(conn, it), "posted_at": first_posted_at(conn, it),
                           "caution": it.get("caution"), "item_id": it.get("id")})
+    return {**st, "items": items}
+
+
+def load(conn, date: str) -> dict:
+    """→ {status, window, fallback, items[...], recheck} — status: 실행 전 / 없음 / 있음 / 실패.
+    07:50 본 실행과 08:00 재확인(_preopen/recheck)을 합친다(같은 종목은 본 실행 것)."""
+    work = session_dir(date, "preopen")
+    main, re_ = _part(conn, work), _part(conn, work / "recheck")
+    if main is None and re_ is None:
+        return {"status": "실행 전", "window": None, "fallback": False, "items": [], "counts": None, "recheck": None}
+    parts = [p for p in (main, re_) if p]
+    items, seen = [], set()
+    for p in parts:
+        for it in p["items"]:
+            if it["code"] not in seen:
+                seen.add(it["code"])
+                items.append({**it, "recheck": p is re_})
     items.sort(key=lambda x: (x["sentiment"] != "호재", -(x["final_raw"] or 0)))
-    return {"status": st.get("status"), "window": st.get("window"), "fallback": bool(st.get("fallback")),
-            "fallback_reason": st.get("fallback_reason"), "counts": st.get("counts"),
-            "finished_at": st.get("finished_at"), "items": items}
+    statuses = [p.get("status") for p in parts]
+    status = "있음" if items else ("실패" if "실패" in statuses and len(set(statuses)) == 1 else "없음")
+    wins = [p.get("window") or {} for p in parts]
+    counts = {}
+    for p in parts:
+        for k, v in (p.get("counts") or {}).items():
+            counts[k] = counts.get(k, 0) + (v or 0)
+    base = main or re_
+    return {"status": status,
+            "window": {"start": min(w.get("start") or "9" for w in wins), "end": max(w.get("end") or "" for w in wins)},
+            "fallback": any(p.get("fallback") for p in parts if p.get("status") == "있음") or bool(base.get("fallback") and not items),
+            "fallback_reason": "; ".join(p.get("fallback_reason") for p in parts if p.get("fallback_reason")) or None,
+            "counts": counts or None, "finished_at": max(p.get("finished_at") or "" for p in parts),
+            "items": items,
+            "recheck": None if re_ is None else {"status": re_.get("status"), "window": re_.get("window"),
+                                                  "items": len(re_["items"]), "finished_at": re_.get("finished_at")}}
 
 
 def telegram_text(data: dict, date: str) -> str:

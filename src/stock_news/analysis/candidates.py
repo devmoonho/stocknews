@@ -49,15 +49,16 @@ def _trading_days(start: str, end: str) -> int:
 
 
 def _preopen_gov_ids(date: str) -> set[int]:
-    """그날 장 전 추가(data/work/날짜_preopen/candidates.json)에서 다룬 정책 기사 id."""
+    """그날 장 전 추가(07:50 본 실행·08:00 재확인 candidates.json)에서 다룬 정책 기사 id."""
     from ..config import session_dir
-    p = session_dir(date, "preopen") / "candidates.json"
-    if not p.exists():
-        return set()
-    try:
-        return {g["id"] for g in json.loads(p.read_text(encoding="utf-8")).get("gov_policy", [])}
-    except (ValueError, KeyError):
-        return set()
+    out: set[int] = set()
+    for p in (session_dir(date, "preopen") / "candidates.json", session_dir(date, "preopen") / "recheck" / "candidates.json"):
+        if p.exists():
+            try:
+                out |= {g["id"] for g in json.loads(p.read_text(encoding="utf-8")).get("gov_policy", [])}
+            except (ValueError, KeyError):
+                pass
+    return out
 
 
 def build(conn, window: Window, write_followups: bool = False) -> dict:
@@ -92,7 +93,7 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
         f"  OR (a.source IN ({gov_q}) AND ((a.published_at >= ? AND a.published_at < ?) "
         "      OR (p.time_basis='before' AND p.list_date=?)))) "
         "ORDER BY a.published_at", (s, e, *GOV_SOURCES, intra_s, s, f"{window.start:%Y-%m-%d}"))]
-    # 그날 07:45 '장 전 추가'에서 이미 다룬 정책은 이후 리포트에 다시 넣지 않는다
+    # 그날 '장 전 추가'(07:50·08:00 재확인)에서 이미 다룬 정책은 이후 리포트에 다시 넣지 않는다
     pre_ids = (_preopen_gov_ids(f"{window.start:%Y-%m-%d}")
                if window.start.time() >= dt.time(15, 30) else set())   # 장 전 추가 자신(07:0x 시작)은 빼지 않음
     articles = [a for a in articles if (s <= a["published_at"] <= e) or a["id"] not in pre_ids]
@@ -152,7 +153,7 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
                 "time_basis": a.get("time_basis") or ("page" if a["source"] == "korea_policy" else None),
                 "time_source": a.get("time_source") or ("page" if a["source"] == "korea_policy" else None),
                 "intraday": a["intraday"],        # 시간대 시작일 장 전(07:00~08:00)·장중(08:00~15:30) 게시 — 후보에 남기되 표시
-                "session": posted_session(a["published_at"], a.get("time_basis")) if a["intraday"] else "장 마감 후",
+                "session": posted_session(a["published_at"], a.get("time_basis")),   # 장 마감 후 / 장 전 / 장중
                 "embargo": {"text": a.get("embargo_text"), "at": a.get("embargo_at")} if a.get("embargo_text") else None,
                 "attachments": atts[:6],
                 "same_as": [{"source": m["source"], "office": ministry_name(m["office"]), "published_at": m["published_at"]}

@@ -199,7 +199,7 @@ def render(c: dict) -> str:
         d = g["diffusion"]
         kind = "보도자료" if g.get("source") == "ministry_press" else "정책브리핑"
         when = g["published_at"][5:16] + (f"({basis_note[g['time_basis']]})" if g.get("time_basis") in basis_note else "")
-        intra = f" ⏱{g.get('session') or '장중'} 게시" if g.get("intraday") else ""
+        intra = f" ⏱{g.get('session') or '장중'} 게시" if g.get("intraday") or g.get("session") in ("장 전", "장중") else ""
         L.append(f"### [P-{i}] {when} [정책:{g['dept']}]{intra} {kind}: {g['title']}")
         extra = []
         if g.get("embargo"):

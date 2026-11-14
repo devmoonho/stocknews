@@ -8,7 +8,7 @@
     python3 scripts/collect.py --snapshot           # 15:30 부처 목록 스냅샷(cron) — 날짜만 있는 부처의 게시 시각 판정용
     python3 scripts/collect.py --probe 3            # 부처 파서 점검: 최근 3일 목록·상세를 파싱만(DB에 안 씀)
     python3 scripts/collect.py --since "2026-11-16 07:03" --sources policy,ministry,dart --session preopen
-                                                    # 장 전 추가(07:45): 네이버 뉴스 없이, 덤프는 data/work/날짜_preopen
+                                                    # 장 전 추가(07:50·08:00 재확인): 네이버 뉴스 없이, 덤프는 data/work/날짜_preopen
 """
 from __future__ import annotations
 

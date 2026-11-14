@@ -118,5 +118,27 @@ class CandidatesSkipPreopenTest(Base):
         self.assertIn(("장 전에 채점한 정책", "장 전"), [(g["title"], g["session"]) for g in gov])
 
 
+class RecheckMergeTest(Base):
+    def test_main_and_recheck_merged(self):
+        from stock_news import preopen
+        work = Path(self.tmp.name) / "d_preopen"
+        (work / "recheck").mkdir(parents=True)
+        win = lambda a, b: {"start": f"2026-11-16 {a}:00", "end": f"2026-11-16 {b}:00"}  # noqa: E731
+        (work / "status.json").write_text(json.dumps({"status": "없음", "window": win("07:03", "07:50"),
+                                                      "counts": {"disclosures": 3, "policies": 0}}))
+        (work / "recheck" / "status.json").write_text(json.dumps({"status": "있음", "window": win("07:50", "08:00"),
+                                                                  "counts": {"disclosures": 2, "policies": 1}}))
+        (work / "recheck" / "scored.json").write_text(json.dumps({"items": [
+            {"id": "S-1", "code": "000810", "name": "삼성화재", "sentiment": "호재", "final": 3, "final_raw": 2.9,
+             "material": "잠정실적", "sources": []}]}))
+        with mock.patch.object(preopen, "session_dir", return_value=work):
+            d = preopen.load(self.conn, "2026-11-16")
+        self.assertEqual(d["status"], "있음")
+        self.assertEqual(d["window"], win("07:03", "08:00"))
+        self.assertEqual(d["counts"], {"disclosures": 5, "policies": 1})
+        self.assertEqual((d["items"][0]["code"], d["items"][0]["recheck"]), ("000810", True))
+        self.assertEqual(d["recheck"]["items"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

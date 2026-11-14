@@ -37,11 +37,13 @@
    - 실거래를 제어하는 봇(AutoInvest QuoVestor)의 토큰은 절대 쓰지 않는다.
    - 리포트 파일은 생성 후 손으로 고치지 않는다(다시 만들면 덮어씀). 수정은 scores.json → score.py → report.py 순서로.
 
-## 장 전 추가 (평일 07:45, 08:00 전 알림)
-- `scripts/preopen_auto.py`: 아침 수집이 끝난 시각(07:0x) ~ 07:45의 새 공시(DART 접수는 07:30부터)·정책(정책브리핑·부처 보도자료)만
+## 장 전 추가 (평일 07:50 본 실행 → 08:00 전 알림, 08:00 재확인)
+- `scripts/preopen_auto.py`: 아침 수집이 끝난 시각(07:0x) ~ 07:50의 새 공시(DART 접수는 07:30부터)·정책(정책브리핑·부처 보도자료)만
   `collect.py --sources policy,ministry,dart --session preopen` → `match.py --session preopen` → Claude 채점(아침과 같은 채점표,
-  `data/work/날짜_preopen/scores.json`, 마감 07:57:30) → `score.py --session preopen`(DB `preopen_scores`) → 텔레그램 "장 전 추가".
+  `data/work/날짜_preopen/scores.json`, 마감 07:58:30) → `score.py --session preopen`(DB `preopen_scores`) → 텔레그램 "장 전 추가".
   못 끝내면 객관 지표 간이 결과. 아침 리포트는 다시 만들지 않는다. API `/api/report/{날짜}`의 `pre_open_additions`.
+- 08:00 `--recheck`: 본 실행 시간대 끝 ~ 08:00의 새 공시·정책만 같은 방식으로(마감 08:08:30, `_preopen/recheck`,
+  `score.py --append`). 새 항목이 있을 때만 텔레그램. API는 본 실행과 합쳐 보여 준다(`recheck: true`).
 - 네이버 뉴스는 수집하지 않는다(하루 2회 제한). 날짜만 있는 부처 글은 07:00 실행 때 목록에 없던 글 = 장 전 게시.
 - 게시·접수 구간: **장 마감 후** 15:30~07:00 · **장 전** 07:00~08:00 · **장중** 08:00~15:30 (공시·정책 공통, `ministry_press.session_of`).
   장중 공시는 지금처럼 리포트 재료가 아니다. 장중·(장 전 추가에서 못 다룬) 장 전 정책은 저녁·다음 날 아침 후보에 '장중 게시'/'장 전 게시'로 남긴다.
@@ -82,7 +84,7 @@
 ## 자동 실행 (미니PC cron)
 - 평일 07:00 `scripts/morning_auto.py` — 1~8단계 전체(채점은 `claude -p`). 실패 시 텔레그램 알림. 로그 `data/logs/`
 - 평일 19:10 `scripts/evening_auto.py --prefetch`, 19:30 `scripts/evening_auto.py` — 저녁 종가매매 리포트
-- 평일 07:45 `scripts/preopen_auto.py` — 장 전 추가(위 "장 전 추가")
+- 평일 07:50 `scripts/preopen_auto.py`, 08:00 `--recheck` — 장 전 추가(위 "장 전 추가")
 - 평일 15:30 `scripts/collect.py --snapshot` — 부처 보도자료 목록 스냅샷(날짜만 있는 부처의 '15:30 이후 게시' 판정 기준)
 - 평일 15:35·15:50 `scripts/theme_daily.py` — 테마 집계·예측 채점 (위 "테마 전망")
 - 평일 16:10 `scripts/scenario_daily.py` — 일일 손익 시나리오 (위 "일일 손익 시나리오")

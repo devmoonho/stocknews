@@ -214,7 +214,7 @@ def report(conn, date: str, session: str = "morning") -> dict:
             "theme_outlook": (theme_outlook(conn, date, "morning") if session == "morning" else
                               (lambda tf: _outlook_out(conn, tf) if tf else None)(
                                   _outlook_file(session_dir(date, "evening") / "candidates.json"))),
-            # 장 전 추가(07:45): 아침 리포트 뒤 07:00~ 새 공시·정책만 채점. 아침 리포트에만 붙는다.
+            # 장 전 추가(07:50·08:00): 아침 리포트 뒤 07:00~ 새 공시·정책만 채점. 아침 리포트에만 붙는다.
             # status: 실행 전 / 없음 / 있음 / 실패 — '없음'이면 RAS에 "장 전 추가 없음"
             "pre_open_additions": preopen.load(conn, date) if session == "morning" else None,
             "report_md_url": f"/api/report/{date}/markdown" + ("?session=evening" if session == "evening" else "")}

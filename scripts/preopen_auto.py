@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""장 전 추가 (cron 평일 07:45) — 아침 리포트 뒤(07:00~) 새로 나온 공시·정책만 추가 수집·채점, 08:00 전에 알림.
+"""장 전 추가 (cron 평일 07:50 본 실행 + 08:00 재확인) — 아침 리포트 뒤(07:00~) 새로 나온 공시·정책만 추가 수집·채점.
 
-    python3 scripts/preopen_auto.py                    # 아침 수집 끝 시각 ~ 지금
+    python3 scripts/preopen_auto.py                    # 07:50: 아침 수집 끝 시각 ~ 지금, 07:58:30까지 채점 → 08:00 전 알림
+    python3 scripts/preopen_auto.py --recheck          # 08:00: 본 실행 끝 ~ 08:00 사이 새 공시·정책만(새 항목 있을 때만 알림)
     python3 scripts/preopen_auto.py --skip-send        # 시험용(텔레그램 안 보냄)
     python3 scripts/preopen_auto.py --since "2026-11-16 07:03" --deadline 07:57:30 --force
 
@@ -44,7 +45,7 @@ PROMPT = """오늘 {date} **장 전 추가**(아침 리포트 뒤 {since}~{until
    - contract·mna·buyback은 quality 필수. preprice·theme_cluster·leader는 쓰지 않는다.
    - 공시만 있는 종목은 "diffusion": null. 항목마다 category. 기사·공시에 없는 사실은 쓰지 않는다.
    - 정책은 근거에 [정책:부처명]. 정부 정책뉴스(E)는 reviewed_policies에 한 줄씩. 호재가 없으면 items는 빈 배열.
-4. `python3 scripts/score.py --date {date} --session preopen` 을 실행하고 오류가 나면 고쳐 통과시킨다.
+4. `python3 scripts/score.py --date {date} --session preopen --work {work}{extra}` 을 실행하고 오류가 나면 고쳐 통과시킨다.
 5. 끝나면 한국어로 한 줄: 호재 몇 종목.
 """
 
@@ -69,16 +70,30 @@ def write_status(work: Path, **kw) -> None:
     (work / "status.json").write_text(json.dumps(kw, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-def write_fallback(run: Run, date: str, cands: dict, reason: str) -> int:
+def recheck_text(conn, date: str, items: list[dict], since: str, until: str) -> str:
+    from stock_news.preopen import first_posted_at
+    from stock_news.report import basis_labels
+    L = [f"🌅 장 전 추가 · 재확인 {date[5:]} ({since[11:16]}~{until[11:16]})"]
+    for it in items[:10]:
+        if it.get("sentiment") == "악재":
+            L.append(f"• 주의 {it['name']}({it['code']}) — {(it.get('material') or '')[:60]}")
+            continue
+        when = (first_posted_at(conn, it) or "")[11:16]
+        L.append(f"• {it['name']}({it['code']}) {it.get('final') or '-'}점 [{', '.join(basis_labels(conn, it))}] {when}")
+        L.append(f"  {(it.get('material') or '')[:80]}")
+    return "\n".join(L)
+
+
+def write_fallback(run: Run, date: str, cands: dict, reason: str, work: Path | None = None, append: bool = False) -> int:
     from score import save_preopen
 
     from stock_news import db
     from stock_news.analysis.fallback import build_items
     items = build_items(cands)
-    (session_dir(date, "preopen") / "scored.json").write_text(json.dumps(
+    (work or session_dir(date, "preopen")).joinpath("scored.json").write_text(json.dumps(
         {"date": date, "session": "preopen", "fallback": True, "fallback_reason": reason, "window": cands["window"],
          "items": items, "reviewed_policies": []}, ensure_ascii=False, indent=1), encoding="utf-8")
-    save_preopen(db.connect(), date, items, fallback=True)
+    save_preopen(db.connect(), date, items, fallback=True, append=append)
     run.write(f"  간이 결과로 대체: {reason} — {len(items)}종목")
     return len(items)
 
@@ -89,7 +104,9 @@ def main() -> int:
     ap.add_argument("--until", help="끝 'YYYY-MM-DD HH:MM' (기본: 지금) — 지난 날 시험용")
     ap.add_argument("--force", action="store_true", help="휴장일이어도 실행")
     ap.add_argument("--skip-send", action="store_true")
-    ap.add_argument("--deadline", default="07:57:30", help="Claude 채점을 기다릴 마지막 시각 HH:MM[:SS]")
+    ap.add_argument("--deadline", help="Claude 채점을 기다릴 마지막 시각 HH:MM[:SS] (기본 본 실행 07:58:30, 재확인 08:08:30)")
+    ap.add_argument("--recheck", action="store_true",
+                    help="08:00 재확인: 본 실행 시간대 끝 ~ 지금(07:50~08:00 사이 공시·정책). 결과는 _preopen/recheck")
     a = ap.parse_args()
     load_env()
     os.environ.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
@@ -97,28 +114,44 @@ def main() -> int:
     if not a.force and not is_trading_day(today, load_holidays()):
         print(f"{today} 휴장일 — 실행 안 함")
         return 0
+    a.deadline = a.deadline or ("08:08:30" if a.recheck else "07:58:30")
     lock = (DATA_DIR / "preopen_auto.lock").open("w")
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        print("이미 실행 중")
+    for _ in range(90 if a.recheck else 1):          # 재확인은 본 실행이 끝날 때까지 최대 90초 기다림
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except BlockingIOError:
+            if not a.recheck:
+                print("이미 실행 중")
+                return 0
+            time.sleep(1)
+    else:
+        print("본 실행이 끝나지 않아 재확인 생략")
         return 0
 
     from stock_news import db
     from stock_news.preopen import load, telegram_text
     date = f"{today:%Y-%m-%d}"
     conn = db.connect()
-    since = a.since or morning_end(conn, date)
+    main_work = session_dir(date, "preopen")
+    if a.recheck:
+        st = main_work / "status.json"
+        prev_end = json.loads(st.read_text(encoding="utf-8")).get("window", {}).get("end") if st.exists() else None
+        since = a.since or (prev_end or f"{date} 07:50:00")[:16]
+        sub = "preopen/recheck"
+    else:
+        since = a.since or morning_end(conn, date)
+        sub = "preopen"
     until = a.until or f"{now_kst():%Y-%m-%d %H:%M}"
-    work = session_dir(date, "preopen")
+    work = session_dir(date, sub)
     run = Run(f"{date}_preopen", a.skip_send)
-    run.write(f"===== 장 전 추가 {since} ~ {until} 시작 =====")
+    run.write(f"===== 장 전 추가{' 재확인' if a.recheck else ''} {since} ~ {until} 시작 =====")
     window = {"start": f"{since}:00", "end": f"{until}:00"}
     try:
         run.step("수집", [PY, "scripts/collect.py", "--since", since, "--until", until,
-                         "--sources", "policy,ministry,dart", "--session", "preopen"], ok_codes=(0, 2), timeout=330)
-        run.step("매칭", [PY, "scripts/match.py", "--since", since, "--until", until, "--session", "preopen"],
-                 ok_codes=(0, 2), timeout=150)
+                         "--sources", "policy,ministry,dart", "--session", sub], ok_codes=(0, 2), timeout=330)
+        run.step("매칭", [PY, "scripts/match.py", "--since", since, "--until", until, "--session", "preopen",
+                         "--out", str(work)], ok_codes=(0, 2), timeout=150)
         cands = json.loads((work / "candidates.json").read_text(encoding="utf-8"))
         counts = {"disclosures": cands["counts"].get("disclosures_listed", 0), "policies": len(cands.get("gov_policy", [])),
                   "stocks": len(cands.get("stocks", []))}
@@ -140,8 +173,9 @@ def main() -> int:
             elif left < 60:
                 fallback_reason = f"채점 시작 시각이 마감 {a.deadline}에 너무 가까움"
             else:
-                cmd = [claude, "-p", PROMPT.format(date=date, work=f"data/work/{date}_preopen", minutes=int(left // 60),
-                                                   since=since[11:], until=until[11:]),
+                rel = str(work.relative_to(ROOT))
+                cmd = [claude, "-p", PROMPT.format(date=date, work=rel, minutes=int(left // 60), since=since[11:],
+                                                   until=until[11:], extra=f" --work {rel} --append" if a.recheck else ""),
                        "--output-format", "json", "--allowedTools", ",".join(CLAUDE_TOOLS), "--max-turns", "50"]
                 if os.environ.get("CLAUDE_MODEL_PREOPEN") or os.environ.get("CLAUDE_MODEL"):
                     cmd += ["--model", os.environ.get("CLAUDE_MODEL_PREOPEN") or os.environ["CLAUDE_MODEL"]]
@@ -159,11 +193,12 @@ def main() -> int:
                     fallback_reason = "scored.json이 만들어지지 않음(채점 미완료)"
                 if not fallback_reason:
                     try:
-                        run.step("검증", [PY, "scripts/score.py", "--date", date, "--session", "preopen"], timeout=60)
+                        run.step("검증", [PY, "scripts/score.py", "--date", date, "--session", "preopen", "--work", str(work)]
+                                 + (["--append"] if a.recheck else []), timeout=60)
                     except StepFailed as e:
                         fallback_reason = f"검증 실패: {e.tail[-200:]}"
             if fallback_reason:
-                write_fallback(run, date, cands, fallback_reason)
+                write_fallback(run, date, cands, fallback_reason, work, append=a.recheck)
         if status == "있음":
             n_items = len(json.loads((work / "scored.json").read_text(encoding="utf-8")).get("items", []))
             status = "있음" if n_items else "없음"           # 후보는 있었지만 채점 결과 종목이 없으면 '없음'
@@ -172,13 +207,19 @@ def main() -> int:
         data = load(conn, date)
         text = telegram_text(data, date)
         run.write(f"  결과: {data['status']} · {len(data['items'])}종목")
-        if not a.skip_send:
+        if a.recheck:                                    # 재확인: 새로 잡힌 것만 짧게, 없으면 보내지 않음
+            new = json.loads((work / "scored.json").read_text(encoding="utf-8")).get("items", []) \
+                if (work / "scored.json").exists() else []
+            text = recheck_text(conn, date, new, since, until) if new else ""
+            run.write(f"  재확인: 새 항목 {len(new)}종목" + ("" if new else " — 알림 생략"))
+        if a.skip_send or not text:
+            if text:
+                print("--- 텔레그램 ---\n" + text)
+        else:
             from stock_news.telegram_notify import TelegramNotifier
             tg = TelegramNotifier()
             if tg.configured:
                 run.write("✅ 텔레그램 전송" if tg.send(text) else "❌ 텔레그램 실패")
-        else:
-            print("--- 텔레그램 ---\n" + text)
         run.write(f"===== 완료 {now_kst():%H:%M:%S} =====")
         return 0
     except (StepFailed, subprocess.TimeoutExpired, Exception) as e:  # noqa: BLE001
@@ -186,7 +227,7 @@ def main() -> int:
         run.write(f"✖ {msg}")
         write_status(work, status="실패", window=window, fallback=True, fallback_reason=msg[:300], counts=None)
         if not a.skip_send:
-            alert(f"❌ 장 전 추가 실패 ({date})\n{msg[:400]}\n로그: {run.log_path}")
+            alert(f"❌ 장 전 추가{' 재확인' if a.recheck else ''} 실패 ({date})\n{msg[:400]}\n로그: {run.log_path}")
         return 1
 
 

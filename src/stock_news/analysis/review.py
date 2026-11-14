@@ -293,7 +293,7 @@ def render(week_start: str, week_end: str, week: dict, cum: dict, corr: dict, ta
                 win = "-" if st["win"] is None else f"{st['win'] * 100:.0f}%"
                 L.append(f"| {kind} | {ses} | {st['n']} | {pct(st['mean'])} | {win} | {pct(st['median'])} |")
         L.append("")
-        L.append("<sub>공시는 가장 먼저 접수된 공시, 정책은 가장 먼저 게시된 근거 기준. 장 전 = 07:45 '장 전 추가'에서 채점한 종목 포함.</sub>")
+        L.append("<sub>공시는 가장 먼저 접수된 공시, 정책은 가장 먼저 게시된 근거 기준. 장 전 = 07:50·08:00 '장 전 추가'에서 채점한 종목 포함.</sub>")
         L.append("")
         L.append("### 부처별 (정책 근거 호재)")
         L.append("")

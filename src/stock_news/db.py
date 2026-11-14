@@ -297,7 +297,7 @@ CREATE TABLE IF NOT EXISTS weight_history (    -- 주간 가중치 조절 기록
     note          TEXT
 );
 
-CREATE TABLE IF NOT EXISTS preopen_scores (        -- 장 전 추가(07:45) 채점: 07:00 이후 새 공시·정책 (아침 scores와 별도)
+CREATE TABLE IF NOT EXISTS preopen_scores (        -- 장 전 추가(07:50·08:00) 채점: 07:00 이후 새 공시·정책 (아침 scores와 별도)
     date TEXT NOT NULL, stock_code TEXT NOT NULL, stock_name TEXT, sentiment TEXT, final INTEGER, final_raw REAL,
     material TEXT, factors TEXT, sources TEXT, weights_version INTEGER, category TEXT, rubric_version INTEGER,
     fallback INTEGER DEFAULT 0, created_at TEXT,

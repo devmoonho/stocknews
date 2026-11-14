@@ -729,7 +729,7 @@ def timing(conn, m: Ministry, it: dict, window: Window, snaps: set[str]) -> tupl
         if seen_in_snapshot(conn, m.key, it["id"], ds):
             return dt.datetime.combine(d, dt.time(0)), "before"
         return window.start, "snapshot"
-    # 장 전 추가(07:45): 아침 07:00 실행이 이 부처 목록을 이미 봤다면, 그때 없던 글 = 그 뒤(장 전)에 올라온 글
+    # 장 전 추가(07:50·08:00): 아침 07:00 실행이 이 부처 목록을 이미 봤다면, 그때 없던 글 = 그 뒤(장 전)에 올라온 글
     lo = f"{window.start - dt.timedelta(hours=3):%Y-%m-%d %H:%M:%S}"
     hi = f"{window.start:%Y-%m-%d %H:%M:%S}"
     if window.start.time() < dt.time(15, 30) and conn.execute(
@@ -745,7 +745,7 @@ def timing(conn, m: Ministry, it: dict, window: Window, snaps: set[str]) -> tupl
 
 def intraday_start(window: Window) -> dt.datetime:
     """시간대 시작일의 장 전·장중 게시 구간 시작(07:00). 정책은 장 전·장중에 게시돼도 이후 리포트 후보에 남긴다
-    (그날 07:45 '장 전 추가'에서 이미 채점한 글은 candidates가 뺀다)."""
+    (그날 장 전 추가(07:50·08:00)에서 이미 채점한 글은 candidates가 뺀다)."""
     s = dt.datetime.combine(window.start.date(), INTRADAY_FROM)
     return s if s < window.start else window.start
 

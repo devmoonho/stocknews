@@ -32,6 +32,7 @@ def main() -> int:
     ap.add_argument("--work", help="작업 폴더 (기본 data/work/날짜[_evening])")
     ap.add_argument("--session", choices=WORK_SESSIONS, default="morning")
     ap.add_argument("--no-db", action="store_true", help="scored.json만 쓰고 DB scores에는 저장하지 않음(시험용)")
+    ap.add_argument("--append", action="store_true", help="preopen 재확인: 그날 장 전 추가 결과를 지우지 않고 종목만 더함")
     a = ap.parse_args()
     load_env()
     work = Path(a.work).resolve() if a.work else session_dir(a.date, a.session)
@@ -86,7 +87,7 @@ def main() -> int:
     elif a.session == "evening":
         save_evening(conn, a.date, items)
     elif a.session == "preopen":
-        save_preopen(conn, a.date, items)
+        save_preopen(conn, a.date, items, append=a.append)
     else:
         _save(conn, a.date, items)
         n = followup.register(conn, a.date, items, cands)
@@ -135,11 +136,13 @@ def save_evening(conn, date: str, items: list[dict], fallback: bool = False) -> 
     conn.commit()
 
 
-def save_preopen(conn, date: str, items: list[dict], fallback: bool = False) -> None:
-    """장 전 추가 채점 → DB preopen_scores (아침 scores와 별도 — 아침 리포트는 다시 만들지 않는다)."""
-    conn.execute("DELETE FROM preopen_scores WHERE date=?", (date,))
+def save_preopen(conn, date: str, items: list[dict], fallback: bool = False, append: bool = False) -> None:
+    """장 전 추가 채점 → DB preopen_scores (아침 scores와 별도 — 아침 리포트는 다시 만들지 않는다).
+    append(08:00 재확인): 본 실행 결과는 두고, 본 실행에 없던 종목만 더한다."""
+    if not append:
+        conn.execute("DELETE FROM preopen_scores WHERE date=?", (date,))
     conn.executemany(
-        "INSERT INTO preopen_scores (date, stock_code, stock_name, sentiment, final, final_raw, material, factors, sources, "
+        "INSERT OR IGNORE INTO preopen_scores (date, stock_code, stock_name, sentiment, final, final_raw, material, factors, sources, "
         "weights_version, category, rubric_version, fallback, created_at) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))",
         [(date, it["code"], it["name"], it["sentiment"], it.get("final"), it.get("final_raw"), it.get("material"),

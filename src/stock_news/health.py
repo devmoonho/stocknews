@@ -26,7 +26,7 @@ def check_fields(items: Iterable[dict], required: Iterable[str], label: str, war
     return True
 
 
-QUIET_VOLUME = False      # 장 전 추가(07:45)처럼 40분짜리 짧은 시간대는 건수 경고를 하지 않는다(collect.py --session preopen)
+QUIET_VOLUME = False      # 장 전 추가(07:50·08:00)처럼 짧은 짧은 시간대는 건수 경고를 하지 않는다(collect.py --session preopen)
 
 
 def check_volume(conn: sqlite3.Connection, source: str, fetched: int, warn: Warnings) -> None:
