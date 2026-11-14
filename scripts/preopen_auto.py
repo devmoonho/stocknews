@@ -105,6 +105,7 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="휴장일이어도 실행")
     ap.add_argument("--skip-send", action="store_true")
     ap.add_argument("--deadline", help="Claude 채점을 기다릴 마지막 시각 HH:MM[:SS] (기본 본 실행 07:58:30, 재확인 08:08:30)")
+    ap.add_argument("--budget", type=int, help="시험용: 마감 시각 대신 '지금부터 N초'까지 Claude 채점을 기다림")
     ap.add_argument("--recheck", action="store_true",
                     help="08:00 재확인: 본 실행 시간대 끝 ~ 지금(07:50~08:00 사이 공시·정책). 결과는 _preopen/recheck")
     a = ap.parse_args()
@@ -163,7 +164,8 @@ def main() -> int:
                                               encoding="utf-8")
             run.write("  새 공시·정책 후보 없음 — 채점 생략")
         else:
-            deadline = dt.datetime.combine(today, parse_hms(a.deadline), tzinfo=now_kst().tzinfo)
+            deadline = (now_kst() + dt.timedelta(seconds=a.budget)) if a.budget else \
+                dt.datetime.combine(today, parse_hms(a.deadline), tzinfo=now_kst().tzinfo)
             left = (deadline - now_kst()).total_seconds()
             scored = work / "scored.json"
             before = scored.stat().st_mtime if scored.exists() else 0
