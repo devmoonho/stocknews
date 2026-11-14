@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from stock_news import db  # noqa: E402
 from stock_news.analysis.candidates import build  # noqa: E402
 from stock_news.analysis.digest import render as render_digest  # noqa: E402
-from stock_news.config import ROOT, SESSIONS, load_env, session_dir  # noqa: E402
+from stock_news.config import ROOT, WORK_SESSIONS, load_env, session_dir  # noqa: E402
 from stock_news.timewindow import load_holidays, prev_trading_day  # noqa: E402
 from stock_news.prices import ensure_daily  # noqa: E402
 from stock_news.timewindow import Window, default_window, now_kst  # noqa: E402
@@ -73,8 +73,9 @@ def main() -> int:
     ap.add_argument("--out", help="결과 폴더 (기본 data/work/리포트날짜)")
     ap.add_argument("--no-prices", action="store_true", help="일봉 조회 생략")
     ap.add_argument("--no-quotes", action="store_true", help="저녁: 시간외 시세(1분봉) 생략 — 19:10 사전 수집용")
-    ap.add_argument("--session", choices=SESSIONS, default="morning",
-                    help="evening = 저녁 종가매매(당일 15:30~지금, 공시·기사 종목의 시간외 시세 포함)")
+    ap.add_argument("--session", choices=WORK_SESSIONS, default="morning",
+                    help="evening = 저녁 종가매매(당일 15:30~지금, 공시·기사 종목의 시간외 시세 포함) / "
+                         "preopen = 장 전 추가(--since 아침 수집 끝 시각, 테마 전망 없음)")
     a = ap.parse_args()
     load_env()
     p = lambda s: dt.datetime.strptime(s, "%Y-%m-%d %H:%M")  # noqa: E731
@@ -90,7 +91,7 @@ def main() -> int:
     if not a.no_prices:
         codes = [s["code"] for s in result["stocks"]]
         # 저녁엔 오늘 통합 봉이 20:00까지 미완성 → 어제까지만 받고, 오늘은 1분봉 시세로
-        upto = f"{prev_trading_day(window.end.date(), load_holidays()):%Y-%m-%d}" if a.session == "evening" \
+        upto = f"{prev_trading_day(window.end.date(), load_holidays()):%Y-%m-%d}" if a.session in ("evening", "preopen") \
             else f"{window.start:%Y-%m-%d}"
         failed = ensure_daily(conn, codes, upto, log=lambda m: None)
         if failed:
@@ -102,7 +103,7 @@ def main() -> int:
     result["session"] = a.session
     # 테마 전망: 직전 15:35 테마 집계 + 재료 → 예측 대상 거래일의 주목 테마
     #   아침 = 오늘(최종, 밤사이 재료 전부) · 저녁 = 다음 거래일(1차, 15:30 이후 재료) — 종가매매 리포트에 넣는다
-    if True:
+    if a.session != "preopen":               # 장 전 추가는 테마 전망 없음(아침 최종 전망 그대로)
         from stock_news.analysis import theme_forecast
         if a.session == "evening":
             target, phase = next_trading_day(window.end.date()), "evening"

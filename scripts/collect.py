@@ -7,6 +7,8 @@
     python3 scripts/collect.py --only ministry      # 부처 보도자료만
     python3 scripts/collect.py --snapshot           # 15:30 부처 목록 스냅샷(cron) — 날짜만 있는 부처의 게시 시각 판정용
     python3 scripts/collect.py --probe 3            # 부처 파서 점검: 최근 3일 목록·상세를 파싱만(DB에 안 씀)
+    python3 scripts/collect.py --since "2026-11-16 07:03" --sources policy,ministry,dart --session preopen
+                                                    # 장 전 추가(07:45): 네이버 뉴스 없이, 덤프는 data/work/날짜_preopen
 """
 from __future__ import annotations
 
@@ -32,6 +34,8 @@ def main() -> int:
     ap.add_argument("--since", help="시작 'YYYY-MM-DD HH:MM' (기본: 직전 거래일 15:30)")
     ap.add_argument("--until", help="끝 'YYYY-MM-DD HH:MM' (기본: 지금)")
     ap.add_argument("--only", choices=["news", "policy", "ministry", "dart"], help="한 소스만")
+    ap.add_argument("--sources", help="여러 소스: news,policy,ministry,dart (--only 대신)")
+    ap.add_argument("--session", default="morning", help="덤프 폴더: preopen이면 data/work/날짜_preopen(아침 덤프를 덮어쓰지 않음)")
     ap.add_argument("--no-body", action="store_true", help="본문 수집 생략(빠른 확인용)")
     ap.add_argument("--ministries", help="부처 보도자료 일부만: motir,msit,… (기본 전체)")
     ap.add_argument("--snapshot", action="store_true", help="부처 보도자료 15:30 목록 스냅샷만")
@@ -63,20 +67,26 @@ def main() -> int:
 
     conn = db.connect()
     results = []
-    if a.only in (None, "news"):
+    if a.session == "preopen":
+        from stock_news import health
+        health.QUIET_VOLUME = True
+    want = set(a.sources.split(",")) if a.sources else ({a.only} if a.only else {"news", "policy", "ministry", "dart"})
+    if "news" in want:
         from stock_news.collectors import naver_focus
         results.append(naver_focus.collect(conn, window, fetch_bodies=not a.no_body))
-    if a.only in (None, "policy"):
+    if "policy" in want:
         from stock_news.collectors import korea_policy
         results.append(korea_policy.collect(conn, window, fetch_bodies=not a.no_body))
-    if a.only in (None, "ministry"):          # 정책브리핑 다음에 — 같은 보도자료를 묶으려면 정책브리핑 기사가 먼저 있어야 함
+    if "ministry" in want:          # 정책브리핑 다음에 — 같은 보도자료를 묶으려면 정책브리핑 기사가 먼저 있어야 함
         from stock_news.collectors import ministry_press
         results.append(ministry_press.collect(conn, window, fetch_bodies=not a.no_body, only=only_m))
-    if a.only in (None, "dart"):
+    if "dart" in want:
         from stock_news.collectors import dart
         results.append(dart.collect(conn, window, fetch_bodies=not a.no_body))
 
-    out = export_window(conn, window, results)
+    from stock_news.config import session_dir
+    out = export_window(conn, window, results,
+                        session_dir(f"{window.report_date:%Y-%m-%d}", a.session) if a.session != "morning" else None)
     warnings = [w for r in results for w in r["warnings"]]
     print(f"\n분석용 덤프: {out}")
     if warnings:

@@ -36,7 +36,7 @@ SOURCE = "ministry_press"
 MAX_PAGES = 6
 BUDGET_SEC = 120          # 부처당 시간 상한 — 한 누리집이 느려도 아침·저녁 수집 전체가 밀리지 않게
 SNAPSHOT_TIME = "15:30"
-INTRADAY_FROM = dt.time(7, 0)    # 아침 리포트(07:00) 뒤 ~ 15:30 게시 = '장중 게시'
+INTRADAY_FROM = dt.time(7, 0)    # 아침 리포트(07:00) 뒤: 07:00~08:00 '장 전', 08:00~15:30 '장중'
 EXACT_BASES = ("rss", "page")    # 시각을 정확히 아는 출처
 TIME_SOURCE = {"rss": "rss", "page": "page", "snapshot": "snapshot", "before": "snapshot", "date": "date",
                "embargo": "embargo", "unknown": "unknown"}
@@ -729,6 +729,14 @@ def timing(conn, m: Ministry, it: dict, window: Window, snaps: set[str]) -> tupl
         if seen_in_snapshot(conn, m.key, it["id"], ds):
             return dt.datetime.combine(d, dt.time(0)), "before"
         return window.start, "snapshot"
+    # 장 전 추가(07:45): 아침 07:00 실행이 이 부처 목록을 이미 봤다면, 그때 없던 글 = 그 뒤(장 전)에 올라온 글
+    lo = f"{window.start - dt.timedelta(hours=3):%Y-%m-%d %H:%M:%S}"
+    hi = f"{window.start:%Y-%m-%d %H:%M:%S}"
+    if window.start.time() < dt.time(15, 30) and conn.execute(
+            "SELECT 1 FROM press_seen WHERE ministry=? AND first_seen_at BETWEEN ? AND ? LIMIT 1", (m.key, lo, hi)).fetchone():
+        if not conn.execute("SELECT 1 FROM press_seen WHERE ministry=? AND item_id=? AND first_seen_at<=?",
+                            (m.key, it["id"], hi)).fetchone():
+            return window.start, "snapshot"
     emb = it.get("embargo_at")
     if emb and emb >= window.start:
         return max(window.start, min(emb, window.end)), "embargo"
@@ -736,24 +744,44 @@ def timing(conn, m: Ministry, it: dict, window: Window, snaps: set[str]) -> tupl
 
 
 def intraday_start(window: Window) -> dt.datetime:
-    """시간대 시작일의 장중 게시 구간 시작(07:00). 정책은 장중에 게시돼도 후보에 남긴다('장중 게시' 표시)."""
+    """시간대 시작일의 장 전·장중 게시 구간 시작(07:00). 정책은 장 전·장중에 게시돼도 이후 리포트 후보에 남긴다
+    (그날 07:45 '장 전 추가'에서 이미 채점한 글은 candidates가 뺀다)."""
     s = dt.datetime.combine(window.start.date(), INTRADAY_FROM)
     return s if s < window.start else window.start
 
 
+PRE_OPEN_END = dt.time(8, 0)
+SESSION_LABELS = ("장 마감 후", "장 전", "장중")
+
+
+def session_of(t: dt.datetime | str | None, trading_day: bool | None = None) -> str:
+    """게시·접수 시각 → 구간: 장 마감 후(15:30~다음 07:00) / 장 전(07:00~08:00) / 장중(08:00~15:30).
+    휴장일 낮 시각은 '장 마감 후'(다음 거래일 전 재료)."""
+    if t is None:
+        return "장 마감 후"
+    if isinstance(t, str):
+        t = dt.datetime.fromisoformat(t[:19])
+    if trading_day is None:
+        from ..timewindow import is_trading_day, load_holidays
+        trading_day = is_trading_day(t.date(), load_holidays())
+    if not trading_day:
+        return "장 마감 후"
+    if INTRADAY_FROM <= t.time() < PRE_OPEN_END:
+        return "장 전"
+    if PRE_OPEN_END <= t.time() < dt.time(15, 30):
+        return "장중"
+    return "장 마감 후"
+
+
 def posted_session(published_at: str | None, time_basis: str | None = None) -> str:
-    """정책 게시 구간: '장중'(평일 거래일 07:00~15:30, 15:30 스냅샷에 이미 있던 글 포함) / '장 마감 후'."""
+    """정책 게시 구간(session_of). 15:30 스냅샷에 이미 있던 날짜만 아는 글(before)은 '장중'."""
     if time_basis == "before":
         return "장중"
     if not published_at:
         return "장 마감 후"
-    t = dt.datetime.fromisoformat(published_at[:19])
-    from ..timewindow import is_trading_day, load_holidays
-    if t.time() == dt.time(0) and time_basis in ("date", None) and published_at[11:19] == "00:00:00":
+    if time_basis in ("date", None) and published_at[11:19] == "00:00:00":
         return "장 마감 후"              # 날짜만 아는 밤사이·휴일 글
-    if is_trading_day(t.date(), load_holidays()) and INTRADAY_FROM <= t.time() < dt.time(15, 30):
-        return "장중"
-    return "장 마감 후"
+    return session_of(published_at)
 
 
 # ---------------------------------------------------------------- 중복 묶기(정책브리핑·부처 간 합동 보도자료)

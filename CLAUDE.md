@@ -37,6 +37,15 @@
    - 실거래를 제어하는 봇(AutoInvest QuoVestor)의 토큰은 절대 쓰지 않는다.
    - 리포트 파일은 생성 후 손으로 고치지 않는다(다시 만들면 덮어씀). 수정은 scores.json → score.py → report.py 순서로.
 
+## 장 전 추가 (평일 07:45, 08:00 전 알림)
+- `scripts/preopen_auto.py`: 아침 수집이 끝난 시각(07:0x) ~ 07:45의 새 공시(DART 접수는 07:30부터)·정책(정책브리핑·부처 보도자료)만
+  `collect.py --sources policy,ministry,dart --session preopen` → `match.py --session preopen` → Claude 채점(아침과 같은 채점표,
+  `data/work/날짜_preopen/scores.json`, 마감 07:57:30) → `score.py --session preopen`(DB `preopen_scores`) → 텔레그램 "장 전 추가".
+  못 끝내면 객관 지표 간이 결과. 아침 리포트는 다시 만들지 않는다. API `/api/report/{날짜}`의 `pre_open_additions`.
+- 네이버 뉴스는 수집하지 않는다(하루 2회 제한). 날짜만 있는 부처 글은 07:00 실행 때 목록에 없던 글 = 장 전 게시.
+- 게시·접수 구간: **장 마감 후** 15:30~07:00 · **장 전** 07:00~08:00 · **장중** 08:00~15:30 (공시·정책 공통, `ministry_press.session_of`).
+  장중 공시는 지금처럼 리포트 재료가 아니다. 장중·(장 전 추가에서 못 다룬) 장 전 정책은 저녁·다음 날 아침 후보에 '장중 게시'/'장 전 게시'로 남긴다.
+
 ## 저녁 종가매매 리포트 (평일 19:45 발송)
 "오늘 저녁 리포트 만들어줘" 또는 `/evening-report` — 당일 15:30 ~ 지금의 공시·뉴스로 NXT 애프터마켓(20:00 마감) 매매 판단용 리포트.
 - 절차: `collect.py` → `match.py --session evening`(시간외 시세 포함) → 채점(아침과 같은 채점표, `data/work/날짜_evening/scores.json`)
@@ -73,6 +82,7 @@
 ## 자동 실행 (미니PC cron)
 - 평일 07:00 `scripts/morning_auto.py` — 1~8단계 전체(채점은 `claude -p`). 실패 시 텔레그램 알림. 로그 `data/logs/`
 - 평일 19:10 `scripts/evening_auto.py --prefetch`, 19:30 `scripts/evening_auto.py` — 저녁 종가매매 리포트
+- 평일 07:45 `scripts/preopen_auto.py` — 장 전 추가(위 "장 전 추가")
 - 평일 15:30 `scripts/collect.py --snapshot` — 부처 보도자료 목록 스냅샷(날짜만 있는 부처의 '15:30 이후 게시' 판정 기준)
 - 평일 15:35·15:50 `scripts/theme_daily.py` — 테마 집계·예측 채점 (위 "테마 전망")
 - 평일 16:10 `scripts/scenario_daily.py` — 일일 손익 시나리오 (위 "일일 손익 시나리오")
@@ -115,7 +125,7 @@
 - `data/stock_news.db` — articles, disclosures, stocks, themes, theme_stocks, scores, collect_runs,
   price_daily, index_daily, price_reactions, price_paths, intraday_patterns, followups, weight_history,
   theme_groups, market_daily, theme_daily, theme_members_daily, theme_forecasts, theme_forecast_results, theme_runs, minute_bars, scenario_recs, intraday_disclosures,
-  press_meta, press_seen, press_snapshots, policy_dups(부처 보도자료·중복 묶음)
+  press_meta, press_seen, press_snapshots, policy_dups(부처 보도자료·중복 묶음), preopen_scores(장 전 추가)
   - 호재 여부와 상관없이 수집한 것은 전부 저장(백테스트용). 지우지 않는다.
 - `data/work/YYYY-MM-DD/` — 그날의 덤프·후보·채점 파일
 - `reports/YYYY-MM-DD.md` — 최종 리포트
@@ -142,8 +152,10 @@
   국토부는 RSS 시각(첨부 업로드 직후)과 상세 '등록일'이 다를 수 있다 — RSS 우선.
   스냅샷이 없는 날의 시작일 글은 엠바고 시각이 15:30 이후일 때만 넣고 나머지는 경고와 함께 제외.
   스냅샷 확인: `python3 -c "import sys;sys.path.insert(0,'src');from stock_news import db;print(db.connect().execute('SELECT * FROM press_snapshots ORDER BY snap_date DESC LIMIT 3').fetchall())"`
-- **정책은 장중 게시도 후보에 남긴다**(공시는 장중이면 제외 — 그대로). 시작일 07:00~15:30에 게시된 정책브리핑·부처 보도자료는
-  다이제스트 E 뒤쪽에 '⏱장중 게시'로, 리포트 근거에 `장중 게시` 태그로 표시. 주간 리뷰는 정책을 '장 마감 후 게시'/'장중 게시'로 나눠 집계.
+- **정책은 장 전·장중 게시도 후보에 남긴다**(공시는 장중이면 제외 — 그대로). 시작일 07:00~15:30 게시 정책은 다이제스트 E 뒤쪽에
+  '⏱장 전 게시'/'⏱장중 게시'로, 리포트 근거에 같은 태그로 표시(장 전 추가에서 이미 채점한 정책은 뺀다).
+  주간 리뷰는 공시·정책 각각 '장 마감 후 / 장 전 / 장중'으로 나눠 집계.
+- 금융위 RSS(http://www.fsc.go.kr/about/fsc_bbs_rss/?fid=0111)는 브라우저 헤더로도 503 "현재 RSS 서비스 점검 중"(2026-11-14) — 복구되면 추가.
   국토부 본문은 문서 뷰어(JS)라 못 읽음 → 묶인 정책브리핑 기사 본문으로 보강. 과기정통부 본문은 첨부 .md.
   복지부 robots.txt는 보도자료 게시판(mid=a10503010100&bid=0027)만 허용 — 다른 게시판을 요청하지 않는다.
   근거 표시는 `[정책:부처명]`(정책브리핑 부처 표기는 `ministry_press.ALIASES`로 통일 — 재정경제부→기획재정부, 산업통상부→산업부).

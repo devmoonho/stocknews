@@ -26,8 +26,13 @@ def check_fields(items: Iterable[dict], required: Iterable[str], label: str, war
     return True
 
 
+QUIET_VOLUME = False      # 장 전 추가(07:45)처럼 40분짜리 짧은 시간대는 건수 경고를 하지 않는다(collect.py --session preopen)
+
+
 def check_volume(conn: sqlite3.Connection, source: str, fetched: int, warn: Warnings) -> None:
     """0건이거나 최근 평균 대비 20% 미만이면 경고."""
+    if QUIET_VOLUME:
+        return
     if fetched == 0:
         warn.add(f"{source}: 수집 0건 — 엔드포인트/형식 변경 또는 차단 여부 확인 필요")
         return

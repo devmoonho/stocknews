@@ -310,7 +310,9 @@ class IntradayPolicyTest(unittest.TestCase):
     def test_posted_session(self):
         ps = mp.posted_session
         self.assertEqual(ps("2026-11-13 10:13:23", "rss"), "장중")
-        self.assertEqual(ps("2026-11-13 07:00:00", "rss"), "장중")
+        self.assertEqual(ps("2026-11-13 07:00:00", "rss"), "장 전")         # 07:00~08:00 장 전
+        self.assertEqual(ps("2026-11-13 07:59:59", "rss"), "장 전")
+        self.assertEqual(ps("2026-11-13 08:00:00", "rss"), "장중")
         self.assertEqual(ps("2026-11-13 15:30:00", "snapshot"), "장 마감 후")
         self.assertEqual(ps("2026-11-13 06:59:00", "page"), "장 마감 후")
         self.assertEqual(ps("2026-11-13 00:00:00", "before"), "장중")          # 15:30 스냅샷에 이미 있던 글

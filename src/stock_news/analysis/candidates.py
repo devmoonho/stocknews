@@ -19,7 +19,7 @@ import json
 from collections import defaultdict
 
 from .. import prices
-from ..collectors.ministry_press import GOV_SOURCES, intraday_start, ministry_name
+from ..collectors.ministry_press import GOV_SOURCES, intraday_start, ministry_name, posted_session
 from ..timewindow import Window, is_trading_day, load_holidays
 from . import followup, leader as ldr
 from .disclosure_parse import _by_mcap, is_third_party, parse as parse_disclosure, scale_basis, scale_score
@@ -46,6 +46,18 @@ def _trading_days(start: str, end: str) -> int:
     d0, d1 = dt.date.fromisoformat(start), dt.date.fromisoformat(end)
     hol = load_holidays()
     return sum(is_trading_day(d0 + dt.timedelta(days=i), hol) for i in range((d1 - d0).days + 1))
+
+
+def _preopen_gov_ids(date: str) -> set[int]:
+    """그날 장 전 추가(data/work/날짜_preopen/candidates.json)에서 다룬 정책 기사 id."""
+    from ..config import session_dir
+    p = session_dir(date, "preopen") / "candidates.json"
+    if not p.exists():
+        return set()
+    try:
+        return {g["id"] for g in json.loads(p.read_text(encoding="utf-8")).get("gov_policy", [])}
+    except (ValueError, KeyError):
+        return set()
 
 
 def build(conn, window: Window, write_followups: bool = False) -> dict:
@@ -80,6 +92,10 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
         f"  OR (a.source IN ({gov_q}) AND ((a.published_at >= ? AND a.published_at < ?) "
         "      OR (p.time_basis='before' AND p.list_date=?)))) "
         "ORDER BY a.published_at", (s, e, *GOV_SOURCES, intra_s, s, f"{window.start:%Y-%m-%d}"))]
+    # 그날 07:45 '장 전 추가'에서 이미 다룬 정책은 이후 리포트에 다시 넣지 않는다
+    pre_ids = (_preopen_gov_ids(f"{window.start:%Y-%m-%d}")
+               if window.start.time() >= dt.time(15, 30) else set())   # 장 전 추가 자신(07:0x 시작)은 빼지 않음
+    articles = [a for a in articles if (s <= a["published_at"] <= e) or a["id"] not in pre_ids]
     for a in articles:
         a["intraday"] = not (s <= a["published_at"] <= e)
     for a in articles:          # 본문이 첨부에만 있는 부처 원문은 묶인 정책브리핑 기사 본문으로 보강
@@ -135,7 +151,8 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
                 "source": a["source"], "office_raw": a["office_name"], "dept_detail": a.get("press_dept") or "",
                 "time_basis": a.get("time_basis") or ("page" if a["source"] == "korea_policy" else None),
                 "time_source": a.get("time_source") or ("page" if a["source"] == "korea_policy" else None),
-                "intraday": a["intraday"],        # 장중 게시(07:00~15:30) — 후보에 남기되 표시
+                "intraday": a["intraday"],        # 시간대 시작일 장 전(07:00~08:00)·장중(08:00~15:30) 게시 — 후보에 남기되 표시
+                "session": posted_session(a["published_at"], a.get("time_basis")) if a["intraday"] else "장 마감 후",
                 "embargo": {"text": a.get("embargo_text"), "at": a.get("embargo_at")} if a.get("embargo_text") else None,
                 "attachments": atts[:6],
                 "same_as": [{"source": m["source"], "office": ministry_name(m["office"]), "published_at": m["published_at"]}

@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 
 from .analysis.scoring import WEIGHTS
-from .collectors.ministry_press import GOV_SOURCES, ministry_name, policy_label, posted_session
+from .collectors.ministry_press import GOV_SOURCES, ministry_name, policy_label, posted_session, session_of
 
 FACTOR_LABELS = {"scale": "재료 규모", "exclusivity": "최초/독점", "novelty": "신규성",
                  "policy": "정책 수혜", "diffusion": "확산도",
@@ -108,11 +108,30 @@ def policy_ministries(conn, it: dict) -> list[str]:
 
 
 def policy_session(conn, it: dict) -> str | None:
-    """정책 근거의 게시 구간: '장중'(07:00~15:30 게시가 하나라도 있으면) / '장 마감 후' / None(정책 근거 없음)."""
+    """정책 근거의 게시 구간 — 가장 먼저 게시된 근거 기준(재료가 처음 공개된 때):
+    '장 마감 후'(15:30~07:00) / '장 전'(07:00~08:00) / '장중'(08:00~15:30) / None(정책 근거 없음)."""
     rows = _policy_rows(conn, it)
     if not rows:
         return None
-    return "장중" if any(posted_session(r["published_at"], r["time_basis"]) == "장중" for r in rows) else "장 마감 후"
+    first = min(rows, key=lambda r: (r["time_basis"] != "before", r["published_at"]))
+    return posted_session(first["published_at"], first["time_basis"])
+
+
+def disclosure_session(conn, it: dict) -> str | None:
+    """공시 근거의 접수 구간(가장 먼저 접수된 공시 기준). 시각 없는 공시는 '장 마감 후'로 본다."""
+    times = []
+    for src in it.get("sources", []):
+        kind, _, val = str(src).partition(":")
+        if kind == "rcept":
+            r = conn.execute("SELECT received_at FROM disclosures WHERE rcept_no=?", (val,)).fetchone()
+            if r and r["received_at"] and len(r["received_at"]) > 10:
+                times.append(r["received_at"])
+            elif r:
+                times.append(None)
+    if not times:
+        return None
+    known = sorted(t for t in times if t)
+    return session_of(known[0]) if known else "장 마감 후"
 
 
 def basis_labels(conn, it: dict) -> list[str]:
@@ -121,8 +140,9 @@ def basis_labels(conn, it: dict) -> list[str]:
     out = [t for t in tags if t != "정책"]
     if "정책" in tags:
         out += [f"정책:{m}" for m in policy_ministries(conn, it)]
-        if policy_session(conn, it) == "장중":
-            out.append("장중 게시")
+        ses = policy_session(conn, it)
+        if ses in ("장 전", "장중"):
+            out.append(f"{ses} 게시")
     return out
 
 
@@ -517,7 +537,7 @@ def render(conn, scored: dict, candidates: dict) -> str:
             g = gov.get(r.get("id"), {})
             title = f"[{_md(r.get('title') or g.get('title'))}]({g['url']})" if g.get("url") else _md(r.get("title"))
             if g.get("intraday"):
-                title += " ⏱장중 게시"
+                title += f" ⏱{g.get('session') or '장중'} 게시"
             picked = ", ".join(names.get(code, code) for code in r.get("picked", [])) or "-"
             L.append(f"| {title} | {_md(g.get('dept'))} | {picked} | {_md(r.get('note'))} |")
     elif gov:

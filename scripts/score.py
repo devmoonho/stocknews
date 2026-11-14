@@ -5,11 +5,13 @@
     python3 scripts/score.py --date 2026-11-12
     python3 scripts/score.py --date 2026-11-13 --work data/work/2026-11-13_v2 --no-db   # 시험용(DB에 안 씀)
     python3 scripts/score.py --session evening        # 저녁 종가매매 (data/work/날짜_evening → DB evening_scores)
+    python3 scripts/score.py --session preopen        # 장 전 추가 (data/work/날짜_preopen → DB preopen_scores)
 오류가 있으면 목록을 출력하고 종료 코드 1 (Claude가 scores.json을 고쳐 다시 실행).
 """
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import sys
 from pathlib import Path
@@ -20,7 +22,7 @@ from stock_news import db  # noqa: E402
 from stock_news import prices  # noqa: E402
 from stock_news.analysis import followup  # noqa: E402
 from stock_news.analysis.scoring import RUBRIC_VERSION, WEIGHTS_VERSION, validate  # noqa: E402
-from stock_news.config import SESSIONS, load_env, session_dir  # noqa: E402
+from stock_news.config import WORK_SESSIONS, load_env, session_dir  # noqa: E402
 from stock_news.timewindow import now_kst  # noqa: E402
 
 
@@ -28,7 +30,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--date", default=f"{now_kst():%Y-%m-%d}")
     ap.add_argument("--work", help="작업 폴더 (기본 data/work/날짜[_evening])")
-    ap.add_argument("--session", choices=SESSIONS, default="morning")
+    ap.add_argument("--session", choices=WORK_SESSIONS, default="morning")
     ap.add_argument("--no-db", action="store_true", help="scored.json만 쓰고 DB scores에는 저장하지 않음(시험용)")
     a = ap.parse_args()
     load_env()
@@ -46,6 +48,9 @@ def main() -> int:
     # 선반영(preprice) 객관 점수: 호재 종목의 직전 거래일까지 일봉으로 계산 (테마·정책에서 고른 종목은 여기서 일봉을 받음)
     conn = db.connect()
     asof = cands["window"]["start"][:10]
+    if a.session == "preopen":           # 장 전: 오늘 일봉은 아직 없음 → 직전 거래일까지 (불필요한 키움 요청 방지)
+        from stock_news.timewindow import load_holidays, prev_trading_day
+        asof = f"{prev_trading_day(dt.date.fromisoformat(asof), load_holidays()):%Y-%m-%d}"
     codes = sorted({it.get("code") for it in scores.get("items", []) if it.get("sentiment") == "호재" and it.get("code")})
     failed = prices.ensure_daily(conn, codes, asof, log=lambda m: None)
     if failed:
@@ -80,6 +85,8 @@ def main() -> int:
         print("(--no-db: DB 저장 생략)")
     elif a.session == "evening":
         save_evening(conn, a.date, items)
+    elif a.session == "preopen":
+        save_preopen(conn, a.date, items)
     else:
         _save(conn, a.date, items)
         n = followup.register(conn, a.date, items, cands)
@@ -125,6 +132,19 @@ def save_evening(conn, date: str, items: list[dict], fallback: bool = False) -> 
              it.get("category"), WEIGHTS_VERSION, RUBRIC_VERSION, int(fallback), q.get("as_of"), q.get("krx_close"),
              q.get("price"), q.get("after_hours_pct"), q.get("since_disclosure_pct"), q.get("after_value"),
              None if "nxt_enabled" not in q else int(q["nxt_enabled"])))
+    conn.commit()
+
+
+def save_preopen(conn, date: str, items: list[dict], fallback: bool = False) -> None:
+    """장 전 추가 채점 → DB preopen_scores (아침 scores와 별도 — 아침 리포트는 다시 만들지 않는다)."""
+    conn.execute("DELETE FROM preopen_scores WHERE date=?", (date,))
+    conn.executemany(
+        "INSERT INTO preopen_scores (date, stock_code, stock_name, sentiment, final, final_raw, material, factors, sources, "
+        "weights_version, category, rubric_version, fallback, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))",
+        [(date, it["code"], it["name"], it["sentiment"], it.get("final"), it.get("final_raw"), it.get("material"),
+          json.dumps(it.get("factors"), ensure_ascii=False), json.dumps(it.get("sources"), ensure_ascii=False),
+          WEIGHTS_VERSION, it.get("category"), RUBRIC_VERSION, int(fallback)) for it in items])
     conn.commit()
 
 

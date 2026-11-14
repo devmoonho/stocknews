@@ -188,6 +188,24 @@ signal(buy/sell/neutral, 제목 키워드 규칙), confirmed(확정형 재료), 
   `ret_Nd_pct` D+N 종가 / D0 시가 − 1. 모두 퍼센트 단위.
 - `close`는 KRX 종가(다음 거래일 기준가로 확정). 아직이면 통합 종가(NXT 애프터마켓 포함)이고 `close_basis`에 그렇게 적힌다.
 
+### 아침 리포트의 `pre_open_additions` (장 전 추가, 2026-11-14 추가)
+평일 07:45에 아침 리포트(07:00) 뒤 새로 나온 공시(DART 접수는 07:30부터)·정책(정책브리핑·부처 보도자료)만 추가 수집해
+아침과 같은 채점 규칙으로 채점한 결과. 아침 리포트 자체는 다시 만들지 않는다. 아침 `/api/report/{날짜}`에만 붙는다(저녁은 null).
+```json
+"pre_open_additions": {
+  "status": "있음",                       // 실행 전(07:45 전) / 없음 / 있음 / 실패
+  "window": {"start": "2026-11-16 07:03:00", "end": "2026-11-16 07:45:00"},
+  "fallback": false, "fallback_reason": null,   // true면 Claude 대신 객관 지표 간이 결과(공시만)
+  "counts": {"disclosures": 12, "policies": 3, "stocks": 4},   // 검토한 공시·정책·후보 종목 수
+  "finished_at": "2026-11-16 07:56:10",
+  "items": [{"code": "000000", "name": "…", "sentiment": "호재", "final": 4, "final_raw": 3.8,
+             "material": "…", "category": "contract", "basis": ["공시"], "basis_labels": ["공시"],
+             "posted_at": "2026-11-16 07:31:12", "caution": null, "item_id": "S-1"}]}
+```
+- `items`가 비어 있으면(`status` 없음) 화면에 "장 전 추가 없음". `posted_at` = 근거 중 가장 먼저 게시·접수된 시각.
+- 장 전에 채점한 정책은 그날 저녁·다음 날 아침 후보에 다시 넣지 않는다. 장중(08:00~15:30) 게시 정책은 지금처럼 다음 리포트 후보에
+  '장중 게시'(`basis_labels`)로 들어간다.
+
 ### `GET /api/theme-outlook/{YYYY-MM-DD | latest}[?phase=evening|morning]`
 **예측 대상 거래일** 기준 테마 전망(리포트에 실린 것 그대로) + 그날 15:35 채점 결과. 하루에 두 번 만들어진다:
 - `evening` **1차** — 전 거래일 19:30 저녁 종가매매 리포트에 실림(그날 15:35 집계 + 15:30~19:30 재료). 예: 11-13 저녁 → `date` 11-16

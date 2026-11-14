@@ -45,13 +45,21 @@ def _rows(conn, start: str | None = None, end: str | None = None) -> list[dict]:
     if end:
         q += " AND p.date <= ?"
         args.append(end)
-    q = q.replace("s.weights_version FROM", "s.weights_version, s.sources AS score_sources FROM")
+    # 장 전 추가 채점(preopen_scores)도 같은 날 반응으로 함께 본다 — 아침 scores가 없을 때 그쪽 값
+    q = q.replace("SELECT p.*, s.stock_name, s.factors, s.material, s.weights_version FROM",
+                  "SELECT p.*, COALESCE(s.stock_name, ps.stock_name) AS stock_name, COALESCE(s.factors, ps.factors) AS factors, "
+                  "COALESCE(s.material, ps.material) AS material, COALESCE(s.weights_version, ps.weights_version) AS weights_version, "
+                  "COALESCE(s.sources, ps.sources) AS score_sources, (s.stock_code IS NULL AND ps.stock_code IS NOT NULL) AS preopen FROM")
+    q = q.replace("LEFT JOIN scores s ON s.date=p.date AND s.stock_code=p.stock_code",
+                  "LEFT JOIN scores s ON s.date=p.date AND s.stock_code=p.stock_code "
+                  "LEFT JOIN preopen_scores ps ON ps.date=p.date AND ps.stock_code=p.stock_code")
     out = []
     for r in conn.execute(q + " ORDER BY p.date", args):
         d = dict(r)
         d["factors"] = json.loads(d["factors"]) if d.get("factors") else {}
         d["ministries"] = _ministries(conn, d)
         d["policy_session"] = _session(conn, d)
+        d["disclosure_session"] = _disc_session(conn, d)
         if d.get("open_limit"):            # 시가가 상한가 → 시가에 살 수 없음: 시가 기준 목표에서 제외(0으로 세면 강한 재료를 감점)
             d["oc_excess_open_limit"], d["oc_excess"], d["oc_pct"] = d.get("oc_excess"), None, None
         out.append(d)
@@ -73,6 +81,16 @@ def _session(conn, d: dict) -> str | None:
     return policy_session(conn, {"sources": json.loads(d.get("score_sources") or "[]"), "id": "P-"})
 
 
+def _disc_session(conn, d: dict) -> str | None:
+    if "공시" not in (d.get("basis") or ""):
+        return None
+    from ..report import disclosure_session
+    return disclosure_session(conn, {"sources": json.loads(d.get("score_sources") or "[]")})
+
+
+SESSIONS3 = ("장 마감 후", "장 전", "장중")
+
+
 def summarize(rows: list[dict], target: str) -> dict:
     def stat(group: list[dict]) -> dict:
         ys = [r[target] for r in group if r.get(target) is not None]
@@ -90,7 +108,9 @@ def summarize(rows: list[dict], target: str) -> dict:
         "by_score": {s: stat([r for r in good if r["final"] == s]) for s in (5, 4, 3, 2, 1)},
         "by_basis": {b: stat([r for r in good if b in (r.get("basis") or "")]) for b in ("공시", "뉴스", "정책")},
         # 정책 게시 구간별: 장 마감 후(15:30~다음 07:00) / 장중(07:00~15:30 — 이미 반영됐을 수 있음)
-        "by_policy_session": {k: stat([r for r in good if r.get("policy_session") == k]) for k in ("장 마감 후", "장중")},
+        # 게시·접수 구간별: 장 마감 후(15:30~07:00) / 장 전(07:00~08:00) / 장중(08:00~15:30) — 공시·정책 각각
+        "by_policy_session": {k: stat([r for r in good if r.get("policy_session") == k]) for k in SESSIONS3},
+        "by_disclosure_session": {k: stat([r for r in good if r.get("disclosure_session") == k]) for k in SESSIONS3},
         # 부처별(정책 근거 호재): 한 종목이 여러 부처 정책에 걸리면 각 부처에 한 번씩 센다
         "by_ministry": dict(sorted(((m, stat([r for r in good if m in r.get("ministries", [])]))
                                     for m in {m for r in good for m in r.get("ministries", [])}),
@@ -260,8 +280,21 @@ def render(week_start: str, week_end: str, week: dict, cum: dict, corr: dict, ta
         table("점수별 (호재)", {**{f"{k}점": v for k, v in data["by_score"].items()}, "호재 전체": data["all_good"],
                              "악재": data["bad"], "비교 기준(채점 안 한 후보)": data["control"]}, lambda k: k)
         table("근거별 (호재)", data["by_basis"], lambda k: f"[{k}]")
-        table("정책 게시 구간별 (호재) — 장 마감 후 게시 vs 장중 게시(07:00~15:30)", data.get("by_policy_session", {}),
-              lambda k: f"{k} 게시")
+        L.append("### 게시·접수 구간별 (호재) — 장 마감 후 15:30~07:00 · 장 전 07:00~08:00 · 장중 08:00~15:30")
+        L.append("")
+        L.append("| 근거 | 구간 | 건수 | 기대수익(평균) | 승률 | 중앙값 |")
+        L.append("|---|---|---|---|---|---|")
+        for kind, key in (("공시", "by_disclosure_session"), ("정책", "by_policy_session")):
+            for ses in SESSIONS3:
+                st = (data.get(key) or {}).get(ses) or {"n": 0}
+                if not st["n"]:
+                    L.append(f"| {kind} | {ses} | 0 | - | - | - |")
+                    continue
+                win = "-" if st["win"] is None else f"{st['win'] * 100:.0f}%"
+                L.append(f"| {kind} | {ses} | {st['n']} | {pct(st['mean'])} | {win} | {pct(st['median'])} |")
+        L.append("")
+        L.append("<sub>공시는 가장 먼저 접수된 공시, 정책은 가장 먼저 게시된 근거 기준. 장 전 = 07:45 '장 전 추가'에서 채점한 종목 포함.</sub>")
+        L.append("")
         L.append("### 부처별 (정책 근거 호재)")
         L.append("")
         if data.get("by_ministry"):

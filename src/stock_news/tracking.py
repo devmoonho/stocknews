@@ -183,6 +183,15 @@ def _targets(conn, date: str) -> list[dict]:
         out.append({"code": it["code"], "grp": "scored", "sentiment": it["sentiment"], "final": it.get("final"),
                     "final_raw": it.get("final_raw"), "basis": ",".join(basis_tags(conn, it))})
         seen.add(it["code"])
+    # 장 전 추가(07:45) 채점 종목도 그날(D0) 반응을 기록 — 아침 리포트에 이미 있는 종목은 아침 기준
+    pre_path = WORK_DIR / f"{date}_preopen" / "scored.json"
+    if pre_path.exists():
+        for it in json.loads(pre_path.read_text(encoding="utf-8")).get("items", []):
+            if it["code"] in seen or it.get("fallback"):
+                continue
+            out.append({"code": it["code"], "grp": "scored", "sentiment": it["sentiment"], "final": it.get("final"),
+                        "final_raw": it.get("final_raw"), "basis": ",".join(basis_tags(conn, it))})
+            seen.add(it["code"])
     cpath = WORK_DIR / date / "candidates.json"
     if cpath.exists():
         cands = json.loads(cpath.read_text(encoding="utf-8"))

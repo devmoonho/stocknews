@@ -193,13 +193,13 @@ def render(c: dict) -> str:
                   "rss": "RSS 시각", "before": "15:30 전 게시(시각 미상)"}
     n_intra = sum(1 for g in gov if g.get("intraday"))
     if n_intra:
-        L.append(f"- ⏱ 장중 게시 {n_intra}건 포함 — 시간대 시작일 07:00~15:30에 게시돼 장중에 이미 반영됐을 수 있다. "
-                 "채점은 같은 기준으로 하되 신규성·선반영을 감안하고, 근거에 '장중 게시'를 적는다.")
+        L.append(f"- ⏱ 장 전·장중 게시 {n_intra}건 포함 — 시간대 시작일 07:00~08:00(장 전)·08:00~15:30(장중)에 게시돼 이미 반영됐을 수 있다. "
+                 "채점은 같은 기준으로 하되 신규성·선반영을 감안하고, 근거에 '장 전 게시'·'장중 게시'를 적는다.")
     for i, g in enumerate(gov, 1):
         d = g["diffusion"]
         kind = "보도자료" if g.get("source") == "ministry_press" else "정책브리핑"
         when = g["published_at"][5:16] + (f"({basis_note[g['time_basis']]})" if g.get("time_basis") in basis_note else "")
-        intra = " ⏱장중 게시" if g.get("intraday") else ""
+        intra = f" ⏱{g.get('session') or '장중'} 게시" if g.get("intraday") else ""
         L.append(f"### [P-{i}] {when} [정책:{g['dept']}]{intra} {kind}: {g['title']}")
         extra = []
         if g.get("embargo"):

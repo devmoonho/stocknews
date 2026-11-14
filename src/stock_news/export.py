@@ -8,8 +8,8 @@ from .config import WORK_DIR
 from .timewindow import Window
 
 
-def export_window(conn, window: Window, results: list[dict]) -> Path:
-    out = WORK_DIR / f"{window.report_date:%Y-%m-%d}"
+def export_window(conn, window: Window, results: list[dict], out: Path | None = None) -> Path:
+    out = out or WORK_DIR / f"{window.report_date:%Y-%m-%d}"
     out.mkdir(parents=True, exist_ok=True)
     s, e = f"{window.start:%Y-%m-%d %H:%M:%S}", f"{window.end:%Y-%m-%d %H:%M:%S}"
 
