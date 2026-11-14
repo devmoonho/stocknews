@@ -1,0 +1,463 @@
+'twitter'); return false;" target="_blank" class="sns-twitter" title="새창"><i>X</i></a> 
+<!-- 								<a href="javascript:void(0)" class="sns-naver-blog"><i>네이버 블로그</i></a> -->
+<!-- 								<a href="javascript:void(0)" class="sns-instagram"><i>인스타그램</i></a> -->
+								<a href="javascript:void(0)" class="share-btn-close">sns 공유닫기</a>
+							</div>
+						</div>
+						<div><button type="button" class="share-btn-print" onclick="javascript:printContents();" title="새 창"><i>프린트</i></button></div>
+					</div>
+				<!-- //page share -->
+			</div>
+			<!-- //컨텐츠 Header -->
+			<!-- 컨텐츠 본문 영역 -->
+	            <!-- 본문 시작 -->
+<article id="cont-body">
+		<div class="box-type01">
+	   		<span class="thumb"><img src="/images/contents/sub/mark_license01.png" alt="OPEN 공공누리 공공저작물 자유이용허락" /></span>
+<p >개별 보도자료에 대한 상세문의는 보도자료에 기재되어 있는 담당부서/담당자에게 연락하여 주시기를 바랍니다.<br />산업통상자원부 보도자료저작물은 <strong class="cl-blue">'공공누리 1유형(출처표시)'</strong> 조건에 따라 누구나 이용할 수 있습니다.</p>
+	   	</div>
+	<!-- 탭메뉴 -->
+	<!-- //탭메뉴 depth-01 -->
+	<!-- 업무계획, 국회업무보고일 때 탭 메뉴 -->
+	<!--//탭 메뉴 -->
+	<!--  업무계획, 국회업무보고일 때 상단 링크와 이미지 -->
+	<!-- //업무계획, 국회업무보고일 때 상단 링크와 이미지 -->
+	<div class="wrap-srch" style="margin-top:0px;">
+		<div class="srch-cont">
+		    <!-- sorting - multi -->
+		    <form action="/kor/article/ATCL3f49a5a8c" id="searchForm" name="searchForm">
+		        <input type="hidden" name="mno" value=""/>
+		        <input type="hidden" name="pageIndex" value="1"/>
+				<input type="hidden" name="rowPageC" value="0"/>
+				<input type="hidden" name="displayAuthor" value="">
+				<!-- 게시판 검색 -->
+						<div class="srch-item">
+							<span class="srch-tit"><i>분류</i></span>
+							<div class="form-pick">
+								<span><input type="radio" id="rdo00" name="searchCategory" value="0" checked="checked" /><label for="rdo00"><i>전체</i></label></span>
+									<span><input type="radio" id="rdo1" name="searchCategory" value="1" ><label for="rdo1"><i>보도자료</i></label></span>
+									<span><input type="radio" id="rdo2" name="searchCategory" value="2" ><label for="rdo2"><i>참고자료</i></label></span>
+								<button type="submit" id="radioSearchBtn"><i>검색</i></button>
+							</div>
+						</div>
+				<div class="srch-item">	
+					<span class="srch-tit"><i>기간선택</i></span>
+					<div class="form-calendar">
+						<span class="pick_clear"><input type="checkbox" name="schClear" id="schClear" checked="checked"/><label for="schClear"><i>날짜미지정</i></label></span>
+						<div class="calendar-cont">
+							<span>
+								<input type="text" autocomplete="off"  name="startDtD" id="startDtD" value="" title="시작일 선택" class="datepicker" aria-label="시작일을 선택하세요">
+								<a href="javascript:void(0);" class="ico-calendar"><img src="/images/ico/ico_calendar01.png" alt="시작일 달력"/></a>
+							</span>
+							<i class="form-split"><i>-</i></i>
+							<span>
+								<input type="text" autocomplete="off"  name="endDtD" id="endDtD" value="" title="종료일 선택" class="datepicker" aria-label="종료일을 선택하세요">
+								<a href="javascript:void(0);" class="ico-calendar"><img src="/images/ico/ico_calendar01.png" alt="종료일 달력"/></a>
+							</span>
+<!-- 							20260506 S -->
+<!-- 웹 접근성 조치 -->
+<!-- 							20260506 E -->							
+						</div>
+						<div class="date_btn">
+							<button type="button" name="termRadio" id="btnWeek" ><i>1주일</i></button>
+							<button type="button" name="termRadio" id="btnWeeks"><i>1개월</i></button>
+							<button type="button" name="termRadio" id="btnMonth"><i>3개월</i></button>
+						</div>
+					</div>
+				</div>
+				<div class="srch-item">
+					<span class="srch-tit"><i>구분</i></span>
+					<div class="form-search">
+						<select title="검색 구분 선택" name="searchCondition" aria-label="검색 구분을 선택하세요">
+									<option value="1" selected="selected">제목</option>
+									<option value="2" >내용</option>
+									<option value="4" >담당부서</option>
+						</select>
+						<div class="srch-text-area">
+							<input type="text" title="검색어 입력" id="searchKeyword" name="searchKeyword" value="" aria-label="검색어를 입력하세요" />
+							<button type="button" aria-label="검색어 삭제" class="srch-del-btn"><i>삭제</i></button>						
+						</div>
+						<button type="submit" id="searchBtn"><i>검색</i></button>
+					</div>
+				</div>
+				<!-- //게시판 검색  -->
+		 	</form>
+		   	<!-- //sorting - multi -->
+		   	<!-- board - list -->
+		</div>
+	</div>
+	<!-- 게시판 상단정보  -->
+	<div class="board-top">
+		<div class="board-count">
+			<span>전체<i>30,222</i>건</span>
+		</div>
+		<div class="board-module">
+			<div class="selectbox">
+				<select title="검색 게시판 개수 선택" id="rowPageS" aria-label="개수를 선택하세요.">
+					<option selected="selected">선택</option>
+					<option value="10" >10개</option>
+					<option value="30" >30개</option>
+					<option value="50" >50개</option>
+				</select>
+				<button type="submit" class="button size-mini bg-gray-dark" id="rowPageNBtn"><i>설정</i></button>
+			</div>
+				<form id="rssForm" name="rssForm" method="post" action="/kor/article/ATCL3f49a5a8c/rss">
+				</form>
+				<div class="board-module">
+					<a href="#rss" onclick="fn_goRss(); return false;" class="tip-ico-rss01" target="_blank" title="새창"><i>RSS</i></a>
+				</div>
+		</div>
+	</div>
+	<!-- //게시판 상단정보 -->
+	<!-- 게시판 목록 -->
+	<div class="board-tbl board-list mo_table">
+		<table id="mytable"> 
+							<caption>보도·참고자료 게시판 목록으로 번호, 분류, 제목, 담당부서, 등록일, 조회수, 첨부파일이 확인됩니다.</caption>
+					<col style="width:6%" />
+						<col style="width:130px" />
+					<col />
+						<col style="width:140px">
+					<col style="width:12%" />
+					<col style="width:8%" />
+						<col style="width:8%" />
+			<thead>
+						<tr>
+							<th scope="col">번호</th>
+								<th scope="col">분류</th>
+							<th scope="col">제목</th>
+								<th scope="col">담당부서</th>
+							<th scope="col">등록일</th>
+							<th scope="col">조회수</th>
+								<th scope="col">첨부파일</th>
+						</tr>
+			</thead>
+			<tbody>
+							<tr>
+								<td>
+									30,222
+								</td>
+									<td>	
+													<span class="badge-category"><i>참고자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172406/view?mno=&pageIndex=1" onclick="article.view('172406'); return false;">
+										<i>(참고자료)12차 최고가격, 11차 수준으로 동결</i>
+									</a>	
+										<span class="badge-new"><i><img src="/images/ico/ico_new01.png" alt="새글" /></i></span>
+									</div>
+								</td>
+									<td><i>석유산업과</i></td>
+										<td>2026-11-13</td>
+										<td>1,681</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/d8059378a8b17d805748b4c09ccfa98e" title="(참고자료, 13(금) 18시엠바고)석유산업과, 12차 최고가격, 11차 수준으로 동결.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,221
+								</td>
+									<td>	
+													<span class="badge-category"><i>참고자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172405/view?mno=&pageIndex=1" onclick="article.view('172405'); return false;">
+										<i>(참고자료)구글社 지도 국외반출 허가 조건이행 결과 협의체 보고</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>홍보담당관</i></td>
+										<td>2026-11-13</td>
+										<td>1,912</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/ae9b860939a149f0a75b89741e3398d8" title="(참고자료)디지털경제통상과, 구글社 지도 국외반출 허가 조건이행 결과 협의체 보고.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,220
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172404/view?mno=&pageIndex=1" onclick="article.view('172404'); return false;">
+										<i>통상교섭본부장, 민관 원팀으로  EU 고위급 통상외교 총력전</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>구주통상과</i></td>
+										<td>2026-11-13</td>
+										<td>2,034</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/1d9d51f5a973505ecdb15095e4f0c098" title="1112(13석간)구주통상과, 통상교섭본부장, 민관 원팀으로 EU 고위급 통상외교 총력전.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,219
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172403/view?mno=&pageIndex=1" onclick="article.view('172403'); return false;">
+										<i>정부, WTO에서 우리 수출기업 발목 잡는 해외 기술규제 대응 나서</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>무역기술장벽협상과</i></td>
+										<td>2026-11-13</td>
+										<td>2,135</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/6b90f46980c2219b0c828357e850f076" title="1112(13석간)무역기술장벽협상과, 정부, WTO에서 우리 수출기업 발목 잡는 해외 기술규제 대응 나서.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,218
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172401/view?mno=&pageIndex=1" onclick="article.view('172401'); return false;">
+										<i>산업부, 장관 주재 「팀코리아 체코 원전사업 추진현황 점검회의」 개최</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>원전수출협력과</i></td>
+										<td>2026-11-12</td>
+										<td>3,052</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/074af0e3d5c1b753c964f8435b5e0f51" title="1112(13조간, 12일(목) 15시30분엠바고)원전수출협력과, 산업부, 장관 주재 팀코리아 체코 원전사업 추진현황 점검회의 개최_최종.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,217
+								</td>
+									<td>	
+													<span class="badge-category"><i>참고자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172400/view?mno=&pageIndex=1" onclick="article.view('172400'); return false;">
+										<i>(참고자료)충청권 메가프로젝트 착공식 개최, 첨단산업 투자 본격 실행</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>지역경제진흥과</i></td>
+										<td>2026-11-12</td>
+										<td>3,617</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/b90811c42526813cdc439ef4ae5134b3" title="(참고자료)지역경제진흥과, 충청권 메가프로젝트 착공식 개최, 첨단산업 투자 본격 실행.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,216
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172399/view?mno=&pageIndex=1" onclick="article.view('172399'); return false;">
+										<i>K-온디바이스 AI반도체, ‘상생’으로 속도낸다</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>첨단반도체과</i></td>
+										<td>2026-11-12</td>
+										<td>3,704</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/c8683de0b6b91de21a0f4f76ac1117aa" title="1112(13조간)첨단반도체과, K-온디바이스 AI반도체 &#039;상생&#039;으로 속도 낸다.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,215
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172398/view?mno=&pageIndex=1" onclick="article.view('172398'); return false;">
+										<i>유럽연합 탄소국경조정제도(CBAM)  국내 첫 검증기관 인정</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>기후경제통상과</i></td>
+										<td>2026-11-12</td>
+										<td>3,495</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/db0f0f3bb0a423dd3f2bd28a148a98ee" title="1111(12석간)기후경제통상과, 유럽연합 탄소국경조정제도 국내 첫 검증기관 인정.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,214
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172397/view?mno=&pageIndex=1" onclick="article.view('172397'); return false;">
+										<i>CPTPP 협정, 알기 쉽게 설명해 드립니다</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>통상협정정책기획과</i></td>
+										<td>2026-11-11</td>
+										<td>4,345</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/9a3eba8ea4890c7901ba56bab67233e8" title="1111(12조간)통상협정정책기획과, CPTPP 협정  알기 쉽게 설명해 드립니다.pdf 다운로드">
+                    <img src="/images/ico/ico_file_pdf.png" alt="PDF 파일"/>
+		</a>
+										</td>
+							</tr>
+							<tr>
+								<td>
+									30,213
+								</td>
+									<td>	
+													<span class="badge-category"><i>보도자료</i></span>
+									</td>
+								<td class="ta-l">
+									<div class="board-link">
+									<a href="/kor/article/ATCL3f49a5a8c/172396/view?mno=&pageIndex=1" onclick="article.view('172396'); return false;">
+										<i>K섬유패션의 미래를 향한 도전,  제40회 섬유의 날 개최</i>
+									</a>	
+									</div>
+								</td>
+									<td><i>섬유탄소나노과</i></td>
+										<td>2026-11-11</td>
+										<td>3,566</td>
+											<td>
+		<a href="/attach/down/095a2dda9c864e1d90d751f7668a1117/508cac2bdd44153ecf3d0a6b1d6493ef" title="1111(12조간)섬유탄소나노과, K섬유패션의 미래를 향한 도전  제40회 섬유의 날 개최.hwpx 다운로드">
+                    <img src="/images/ico/ico_file_hwp.png" alt="아래아한글 파일"/>
+		</a>
+										</td>
+							</tr>
+			</tbody>
+		</table>
+	</div>
+	<!-- //게시판 목록  -->
+	<!-- 페이징 -->	
+		<div class="board-page">
+			<a href="?pageIndex=1" onclick="article.list(1);return false;" title="처음으로" class="direction first">처음으로</a><a href="?pageIndex=1" onclick="article.list(1);return false;" title="이전페이지" class="direction prev">이전페이지</a><strong>1</strong><a href="?pageIndex=2" onclick="article.list(2);return false; ">2</a><a href="?pageIndex=3" onclick="article.list(3);return false; ">3</a><a href="?pageIndex=4" onclick="article.list(4);return false; ">4</a><a href="?pageIndex=5" onclick="article.list(5);return false; ">5</a><a href="?pageIndex=6" onclick="article.list(6);return false;" title="다음 페이지 이동" class="direction next">다음페이지</a><a href="?pageIndex=3023" onclick="article.list(3023);return false;" title="마지막 페이지로 이동" class="direction last">마지막페이지</a>
+		</div>
+	<!-- //페이징  -->
+	            <!-- 본문 끝 -->
+<!-- 페이지정보 -->
+<div class="wrap-page-info">
+	<!-- 설문 -->
+	<div class="page-survey">
+		<form action="/kor/satisfaction" name="writeForm" id="writeForm">
+			<fieldset>
+				<legend>만족도 조사</legend>
+				<strong>이 페이지에서 제공하는 정보에 만족하셨습니까?</strong>
+				<ul>
+					<li><input type="radio" name="score" value="5" checked="checked" id="satisfaction_rdo_01"><label for="satisfaction_rdo_01">매우만족</label></li>
+					<li><input type="radio" name="score" value="4" id="satisfaction_rdo_02"><label for="satisfaction_rdo_02">만족</label></li>
+					<li><input type="radio" name="score" value="3" id="satisfaction_rdo_03"><label for="satisfaction_rdo_03">보통</label></li>
+					<li><input type="radio" name="score" value="2" id="satisfaction_rdo_04"><label for="satisfaction_rdo_04">불만족</label></li>
+					<li><input type="radio" name="score" value="1" id="satisfaction_rdo_05"><label for="satisfaction_rdo_05">매우불만족</label></li>
+				</ul>
+<!-- 				<span> -->
+<!-- 	            	<label for="opinion_input" class="hidden">의견입력</label> -->
+<!-- 	            	<input type="text" title="만족도" id="opinion_input" name="content" /> -->
+<!-- 	            </span> -->
+				<button type="button" class="button bg-navy" onclick="executeWrite.ajaxWrite(399);return false;"><i>등록하기</i></button>
+				<!--
+				-->
+			</fieldset>
+		</form>
+		<!--<div class="fopen_mark"> -->
+	</div>
+	<!-- //설문 -->
+	<!-- 페이지 담당 -->
+	<!-- //페이지 담당 -->
+</div>
+<!-- //페이지정보 -->
+<!--
+-->
+	        </article>
+			<!--  //컨텐츠 본문 영역 -->
+		</section>
+		<!--  //컨텐츠 -->
+	</section>
+	<!--  //container -->
+<!-- footer -->
+	<footer id="wrap-footer">
+		<!-- 관련사이트 -->
+		<div class="footer-org">
+			<ul class="org-site">
+				<li>
+					<a href="#site" class="site-btn modal-open" data-name="org-site01"><span>소속기관</span></a>
+					<!-- 소속기관 팝업 -->
+					<div id="org-site01" class="wrap-modal full-modal">
+						<div class="modal-body site-popup">
+							<div class="inner">
+								<strong class="site-tit">소속기관</strong>
+								<div class="site-box">
+									<ul>
+										<li><a href="http://www.kats.go.kr" target="_blank" title="새창"><i>국가기술표준원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/masan/masanMain.jsp" target="_blank" title="새창"><i>마산자유무역지역관리원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/gunsan/gunsanMain.jsp" target="_blank" title="새창"><i>군산자유무역지역관리원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/daebul/daebulMain.jsp" target="_blank" title="새창"><i>대불자유무역지역관리원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/donghae/donghaeMain.jsp" target="_blank" title="새창"><i>동해자유무역지역관리원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/yulchon/yulchonMain.jsp" target="_blank" title="새창"><i>율촌자유무역지역관리원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/gimje/gimjeMain.jsp" target="_blank" title="새창"><i>김제자유무역지역관리원</i></a></li>
+										<li><a href="http://www.motir.go.kr/ftz/ulsan/ulsanMain.jsp" target="_blank" title="새창"><i>울산자유무역지역관리원</i></a></li>
+										<li><a href="http://www.ktc.go.kr" target="_blank" title="새창"><i>무역위원회</i></a></li>
+										<li><a href="http://www.fez.go.kr/" target="_blank" title="새창"><i>경제자유구역기획단</i></a></li>
+										<li><a href="http://branch.motir.go.kr" target="_blank" title="새창"><i>광업등록사무소</i></a></li>
+										<li><a href="http://www.motir.go.kr/mine/emine/emineMain.jsp" target="_blank" title="새창"><i>동부광산안전사무소</i></a></li>
+										<li><a href="http://www.motir.go.kr/mine/mmine/mmineMain.jsp" target="_blank" title="새창"><i>중부광산안전사무소</i></a></li>
+										<li><a href="http://www.motir.go.kr/mine/wmine/wmineMain.jsp" target="_blank" title="새창"><i>서부광산안전사무소</i></a></li>
+										<li><a href="http://www.motir.go.kr/mine/smine/smineMain.jsp" target="_blank" title="새창"><i>남부광산안전사무소</i></a></li>
+									</ul>
+								</div>
+							</div>
+							<button type="button" class="modal-close"><i>소속기관 사이트 목록 닫기</i></button>
+						</div>
+					</div>
+					<!-- //소속기관 팝업 -->
+				</li>
+				<li>
+					<a href="#site" class="site-btn modal-open" data-name="org-site02"><span>소관공공기관</span></a>
+					<!-- 소관공공기관 팝업 -->
+					<div id="org-site02" class="wrap-modal full-modal">
+						<div class="modal-body site-popup">
+							<div class="inner">
+								<strong class="site-tit">소관공공기관</strong>
+								<div class="site-box">
+									<ul>
+										<li><a href="https://www.knoc.co.kr/" target="_blank" title="새창"><i>한국석유공사</i></a></li>
+										<li><a href="https://www.kogas.or.kr/" target="_blank" title="새창"><i>한국가스공사</i></a></li>
+										<li><a href="https://kangwonland.high1.com/" target="_blank" title="새창"><i>강원랜드</i></a></li

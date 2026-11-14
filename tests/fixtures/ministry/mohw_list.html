@@ -1,0 +1,359 @@
+건복지 상담센터 129"><em class="icon05"></em><span>상담센터 129</span></a></li>
+        <li><a href="/menu.es?mid=a10204010000"><em class="icon06"></em><span>부정비리·공익신고센터</span></a></li>
+    </ul>
+</div>
+		</section>
+		<section id="contents" class="sub05 sub0503">
+			<div class="contents_util">
+				<nav class="location">
+					<ol class="path">
+						<li class="icon"><a href="/index.es?sid=a1">홈</a></li>
+										<li><a href="/menu.es?mid=a10500000000" aria-current="true" >알림</a></li>
+										<li><a href="/menu.es?mid=a10503000000" aria-current="true" >보도자료</a></li>
+										<li><a href="/menu.es?mid=a10503010100" aria-current="true"  class="active">전체</a></li>
+					</ol>
+				</nav>
+					<div class="util">
+						<article class="share">
+							<h2 class="title"><a href="" class="btn open" title="열기">공유하기</a></h2>
+							<form id="snsForm" name="snsForm" action="/api/sns.es" method="post">
+								<input type="hidden" name="title" value="목록 &lt; 전체 &lt; 보도자료 &lt; 알림 : 모든 국민의 건강, 삶의 질 향상을 위해 노력하는 보건복지부 홈페이지입니다.">
+								<input type="hidden" name="mid" value="a10503010100">
+								<input type="hidden" name="url" value="">
+								<input type="submit" value="전송" style="display:none;height:0;width:0;">
+							</form>
+							<div class="item">
+								<ul id="share" class="list">
+									<li class="kakaotalk"><a href="#share" id="kakao-link-btn" title="새창- 카카오톡으로 내용 공유"  onclick="sendKakaoTalk();">카카오톡</a></li>
+									<li class="kakaostory"><a href="#share" onclick="snsApi('kakao'); return false;" title="새창으로 열기">카카오스토리</a></li>
+									<li class="twitter"><a href="#share" onclick="snsApi('twitter'); return false;" title="새창으로 열기">트위터</a></li>
+									<li class="facebook"><a href="#share" onclick="snsApi('facebook'); return false;" title="새창으로 열기">페이스북</a></li>
+								</ul>
+								<a href="#share" onclick="slideToggleView('#share'); return false;" class="close">닫기</a>
+							</div>
+						</article>
+						<button class="btn print" onclick="window.print();">인쇄</button>
+					</div>
+			</div>
+			<h2 id="contents_title" class="contents_title">
+					보도자료
+			</h2>
+			<div id="contents_body">
+			<div id="depth4_menu_div" class="depth4_tab ">
+<ul id="depth4_dab">
+	<li id="tab_li0503010100"><a href="/menu.es?mid=a10503010100">전체</a></li>
+	<li id="tab_li0503010200"><a href="/menu.es?mid=a10503010200">일반</a></li>
+	<li id="tab_li0503010300" class="last"><a href="/menu.es?mid=a10503010300">배포 콘텐츠</a></li>
+</ul>
+</div>
+<div class="board_info detail">
+	<form id="srhForm" name="srhForm" action="/board.es?mid=a10503010100&amp;bid=0027&amp;cg_code=" method="post">
+	<input type="hidden" name="mid" value="a10503010100">
+	<input type="hidden" name="bid" value="0027">
+	<input type="hidden" name="nPage" value="1">
+	<input type="hidden" name="b_list" value="15">
+	<input type="hidden" name="orderby" value="">
+	<input type="hidden" name="dept_code" value="">
+	<input type="hidden" name="tag" value="">
+	<input type="hidden" name="startPeriod" value="">
+	<input type="hidden" name="endPeriod" value="">
+	<input type="hidden" name="list_no" value="">
+	<input type="hidden" name="act" value="list">
+		<fieldset>
+			<legend class="blind">보도자료 검색</legend>
+			<div class="form">
+				<label for="selectPeriod" class="form_label"><strong>기간</strong></label>
+				<p class="item">
+					<span class="form_select">
+						<select name="keyPeriod" id="selectPeriod" title="기간을 선택해주세요.">
+							<option value="" selected="selected">선택</option>
+							<option value="1">1개월</option>
+							<option value="3">3개월</option>
+							<option value="6">6개월</option>
+							<option value="12">1년</option>
+						</select>
+					</span>
+				</p>
+					<div class="datepicker-input md">
+						<div class="range set">
+							<input type="text" name="searchPd" value="" title="기간 입력" id="dateRange" class="form-control datepicker" autocomplete="off" placeholder="yyyy.mm.dd~yyyy.mm.dd" readonly>
+						</div>
+						<button type="button" class="form-btn-datepicker">
+							<span class="sr-only">달력 열기</span>
+						</button>
+					</div>
+					<button type="button" class="btn_basic btn_tertiary btn_reset ico-reset medium" value="reset"><span class="sr-only">초기화</span></button>
+			</div>
+			<div class="form">
+				<label for="selectListCnt" class="form_label"><strong>검색구분</strong></label>
+				<p class="item">
+					<span class="form_select">
+						<select name="pageCnt" id="selectListCnt" title="목록갯수를 선택해주세요.">
+							<option value="15">15개</option>
+							<option value="30">30개</option>
+							<option value="50">50개</option>
+							<option value="100">100개</option>
+						</select>
+					</span>
+				</p>
+				<p class="item">
+					<span class="form_select">
+						<select name="keyField" id="selectListCnt2" title="검색어 분류를 선택하세요">
+							<option value="TITLE">제목</option>
+							<option value="CONTENT">내용</option>
+							<option value="M_NAME">작성자</option>
+							<option value="DEPT_NAME">담당부서</option>
+						</select>
+					</span>
+				</p>
+				<span class="item type1"><input type="text" name="keyWord" class="form_textbox" placeholder="검색어를 입력하세요" title="검색어를 입력하세요" value=""></span>
+				<span class="item type1 btn"><button type="submit" class="Btn-Gray Xs" onclick="goPage('1'); return false;">검색</button></span>
+			</div>
+		</fieldset>
+	</form>
+	<p class="page">
+		<span class="total">전체 <b>24,787건</b> </span> <span class="current">페이지 <strong>1</strong>/<b>1653</b></span>
+	</p>
+</div>
+<div class="board_list flexible">
+	<table class="tstyle_list">
+		<caption>보도자료 목록 - 번호, 제목, 담당부서, 등록일, 조회수를 나타낸 표입니다.</caption>
+		<colgroup>
+			<col class="w8">
+			<col>
+			<col class="w15">
+			<col class="w15">
+			<col class="w8">
+		</colgroup>
+		<thead>
+			<tr>
+				<th scope="col">번호</th>
+				<th scope="col">제목</th>
+				<th scope="col">담당부서</th>
+				<th scope="col">등록일</th>
+				<th scope="col">조회수</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="m_hidden" data-label="번호">24787</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492533&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> AI 기반 의료데이터 표준화로 기관 간 정보 연계·활용 확대</a></td>
+				<td data-label="담당부서">의료인공지능데이터정책과</td>
+				<td data-label="등록일">2026-11-13</td>
+				<td class="m_hidden" data-label="조회수">948</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24786</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492532&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> ‘위기가구 찾고, 희망 연결하는’ 전국 통합사례관리 담당자 소통의 장 마련</a></td>
+				<td data-label="담당부서">지역복지과</td>
+				<td data-label="등록일">2026-11-13</td>
+				<td class="m_hidden" data-label="조회수">873</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24785</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492526&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 의료 정보보호 강화 위한 민관 협력기반 마련, 의료기관 보안 현황 점검 및 개선방안 ..</a></td>
+				<td data-label="담당부서">정보보호팀</td>
+				<td data-label="등록일">2026-11-12</td>
+				<td class="m_hidden" data-label="조회수">1486</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24784</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492524&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 위기이웃 살피는 11만 7천 명의 복지안전망, 제20회 지역사회보장협의체 전국대회 개최</a></td>
+				<td data-label="담당부서">지역복지과</td>
+				<td data-label="등록일">2026-11-12</td>
+				<td class="m_hidden" data-label="조회수">1352</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24783</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492523&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 복지서비스, 현장에서 상담부터 신청까지…AI로 더 똑똑해진 ‘모바일 행복이음’</a></td>
+				<td data-label="담당부서">복지정보운영과</td>
+				<td data-label="등록일">2026-11-12</td>
+				<td class="m_hidden" data-label="조회수">1624</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24782</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492521&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 인근 약국 없는 군부대·공항에서 안전상비의약품 취급 등 의약품 접근성 개선</a></td>
+				<td data-label="담당부서">약무정책과</td>
+				<td data-label="등록일">2026-11-12</td>
+				<td class="m_hidden" data-label="조회수">1370</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24781</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492518&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 양극화 대응 TF 총괄반 1차 회의 개최 모두의 성장으로 대전환을 위해 전 부처 역량 결..</a></td>
+				<td data-label="담당부서">기획조정담당관</td>
+				<td data-label="등록일">2026-11-12</td>
+				<td class="m_hidden" data-label="조회수">1174</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24780</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492512&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 정부·정보통신서비스 제공자·전문가 등 모여 온라인 유통 자살유발정보 차단 방안 논..</a></td>
+				<td data-label="담당부서">자살예방정책과</td>
+				<td data-label="등록일">2026-11-11</td>
+				<td class="m_hidden" data-label="조회수">1479</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24779</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492511&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> ‘공공의료 AI 고속도로’ 첫 개통,강원 지역 공공병원 의료 AI로 본격 연결</a></td>
+				<td data-label="담당부서">의료인공지능데이터정책과</td>
+				<td data-label="등록일">2026-11-11</td>
+				<td class="m_hidden" data-label="조회수">2322</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24778</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492509&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 영월의료원, 의료 AI로 진료 부담 덜고 &#x27;분만·소아&#x27; 등 필수의료 공백 해소</a></td>
+				<td data-label="담당부서">의료인공지능데이터정책과</td>
+				<td data-label="등록일">2026-11-11</td>
+				<td class="m_hidden" data-label="조회수">1715</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24777</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492489&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 전국 재난의료 인력 150명 모여 대형 재난 대비 현장 대응 역랑 점검</a></td>
+				<td data-label="담당부서">재난의료정책과</td>
+				<td data-label="등록일">2026-11-10</td>
+				<td class="m_hidden" data-label="조회수">1682</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24776</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492487&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 겨울철 위기가구, 정부가 먼저 찾아 온기 건넨다 「2026~2027년 겨울철 취약계층 보호..</a></td>
+				<td data-label="담당부서">복지정책과</td>
+				<td data-label="등록일">2026-11-10</td>
+				<td class="m_hidden" data-label="조회수">3461</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24775</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492486&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 빚 때문에 생명 포기하는 일 없도록 자살예방상담(109)에서 채무상담(1375)으로 바로 ..</a></td>
+				<td data-label="담당부서">자살예방정책과</td>
+				<td data-label="등록일">2026-11-10</td>
+				<td class="m_hidden" data-label="조회수">1937</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24774</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492485&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 킬레이션 주사 투약 의혹 의료기관 행정조사</a></td>
+				<td data-label="담당부서">보건의료정책과</td>
+				<td data-label="등록일">2026-11-10</td>
+				<td class="m_hidden" data-label="조회수">1899</td>
+			</tr>
+			<tr>
+				<td class="m_hidden" data-label="번호">24773</td>
+				<td class="txt_left" data-label="제목">
+<a href="/board.es?mid=a10503010100&amp;bid=0027&amp;act=view&amp;list_no=1492478&amp;tag=&amp;nPage=1" class="txt_title"> <i class="xi-new"></i><span class="sr_only">새글</span> 환자 안전과 인권 보호 위해 연말까지 정신의료기관 운영실태 릴레이 합동점검</a></td>
+				<td data-label="담당부서">정신건강정책과</td>
+				<td data-label="등록일">2026-11-09</td>
+				<td class="m_hidden" data-label="조회수">2261</td>
+			</tr>
+		</tbody>
+	</table>
+</div>
+<div class="board_pager">
+    <span class="arr prev disabled">이전</span>
+<span class="group">
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=1" class="active" onclick="goPage('1'); return false;" title="현재 페이지"><strong>1</strong></a>
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=2" onclick="goPage('2'); return false;">2</a>
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=3" onclick="goPage('3'); return false;">3</a>
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=4" onclick="goPage('4'); return false;">4</a>
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=5" onclick="goPage('5'); return false;">5</a>
+    <span class="link-dot"></span>
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=1653" onclick="goPage('1653'); return false;">1653</a>
+</span>
+    <a href="/board.es?mid=a10503010100&bid=0027&nPage=2" class="arr next" onclick="goPage('2'); return false;">다음<span class="sr_only">페이지로 이동</span></a>
+</div>
+			</div>
+			<!--//contents_body -->
+		</section>
+		</div>
+			<a href="#wrap" class="go-top"><i class="xi-angle-up-min"></i>TOP<span class="sr-only">문서 처음으로 이동</span></a>
+	</main>
+	<footer id="footer">
+<div class="related">
+	<div class="container">
+		<div class="group group1">
+			<!-- <a href="#none" class="label">사업별 홈페이지<em class="sr_only">목록 열기</em></a> -->
+			<button class="label" data-id="popFootLink" title="사업별 홈페이지 레이어">
+				사업별 홈페이지<em class="sr_only">목록 열기</em>
+			</button>
+			<div class="popup-wrap" data-type="full" id="popFootLink">
+				<div class="popup-in">
+					<div class="popup">
+						<div class="popup-head">
+							<h1 class="pop-tit">사업별 홈페이지</h1>
+						</div>
+						<div class="popup-body">
+							<ul class="list">
+		<li><a href="https://basicpension.mohw.go.kr" target="_blank" title="새창 - 기초연금">기초연금</a></li>
+		<li><a href="http://www.longtermcare.or.kr/" target="_blank" title="새창 - 노인장기요양보험">노인장기요양보험</a></li>
+		<li><a href="https://www.socialservice.or.kr:444" target="_blank" title="새창 - 사회서비스전자바우처">사회서비스전자바우처</a></li>
+		<li><a href="http://www.ehaneul.go.kr/" target="_blank" title="새창 - e하늘 장사종합정보">e하늘 장사종합정보</a></li>
+		<li><a href="http://www.129.go.kr" target="_blank" title="새창 - 보건복지상담센터">보건복지상담센터</a></li>
+		<li><a href="http://library.mohw.go.kr" target="_blank" title="새창 - 보건복지부 자료실">보건복지부 자료실</a></li>
+		<li><a href="http://www.e-health.go.kr/" target="_blank" title="새창 - 공공보건포털">공공보건포털</a></li>
+		<li><a href="http://khiss.go.kr/" target="_blank" title="새창 - 보건산업통계 홈페이지">보건산업통계 홈페이지</a></li>
+		<li><a href="https://health.kdca.go.kr" target="_blank" title="새창 - 국가건강정보포털">국가건강정보포털</a></li>
+		<li><a href="http://lic.mohw.go.kr" target="_blank" title="새창 - 보건복지부 인·허가 민원신청">보건복지부 인·허가 민원신청</a></li>
+		<li><a href="http://www.ableservice.or.kr" target="_blank" title="새창 - 장애인사회활동지원">장애인사회활동지원</a></li>
+		<li><a href="http://www.childcare.go.kr" target="_blank" title="새창 - 임신육아종합포털 아이사랑">임신육아종합포털 아이사랑</a></li>
+		<li><a href="https://www.bokjiro.go.kr/" target="_blank" title="새창 - 복지로">복지로</a></li>
+		<li><a href="http://www.ssc.go.kr" target="_blank" title="새창 - 사회보장위원회">사회보장위원회</a></li>
+		<li><a href="https://www.mohw.go.kr/memorial" target="_blank" title="새창 - 의사자추모관">의사자추모관</a></li>
+		<li><a href="https://emrcert.mohw.go.kr/" target="_blank" title="새창 - 전자의무기록시스템(EMR) 인증">전자의무기록시스템(EMR) 인증</a></li>
+		<li><a href="https://www.mohw.go.kr/integratedcare" target="_blank" title="새창 - 보건복지부 지역사회 통합돌봄">보건복지부 지역사회 통합돌봄</a></li>
+		<li><a href="https://mohw.go.kr/healthcarereform/" target="_blank" title="새창 - 의료혁신 자료실">의료혁신 자료실</a></li>
+							</ul>
+						</div>
+						<button type="button" class="popup-close">
+							<span class="sr-only">레이어 닫기</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="group group2">
+			<!-- <a href="#none" class="label">외청 및 소속기관 홈페이지<em class="sr_only">목록 열기</em></a> -->
+			<button class="label" data-id="popFootLink2"
+				title="외청 및 소속기관 홈페이지 레이어">
+				외청 및 소속기관 홈페이지<em class="sr_only">목록 열기</em>
+			</button>
+			<div class="popup-wrap" data-type="full" id="popFootLink2">
+				<div class="popup-in">
+					<div class="popup">
+						<div class="popup-head">
+							<h1 class="pop-tit">외청 및 소속기관 홈페이지</h1>
+						</div>
+						<div class="popup-body">
+							<ul class="list">
+		<li><a href="http://www.kdca.go.kr/" target="_blank" title="새창 - 질병관리청">질병관리청</a></li>
+		<li><a href="http://www.ncmh.go.kr/" target="_blank" title="새창 - 국립정신건강센터">국립정신건강센터</a></li>
+		<li><a href="http://www.najumh.go.kr/" target="_blank" title="새창 - 국립나주병원">국립나주병원</a></li>
+		<li><a href="http://www.bgnmh.go.kr/" target="_blank" title="새창 - 국립부곡병원">국립부곡병원</a></li>
+		<li><a href="http://www.cnmh.go.kr/" target="_blank" title="새창 - 국립춘천병원">국립춘천병원</a></li>
+		<li><a href="http://www.knmh.go.kr/" target="_blank" title="새창 - 국립공주병원">국립공주병원</a></li>
+		<li><a href="http://www.sorokdo.go.kr/" target="_blank" title="새창 - 국립소록도병원">국립소록도병원</a></li>
+		<li><a href="http://www.nrc.go.kr/" target="_blank" title="새창 - 국립재활원">국립재활원</a></li>
+		<li><a href="https://www.konos.go.kr" target="_blank" title="새창 - 국립장기조직혈액관리원">국립장기조직혈액관리원</a></li>
+		<li><a href="http://osong.mohw.go.kr" target="_blank" title="새창 - 오송생명과학단지지원센터">오송생명과학단지지원센터</a></li>
+		<li><a href="http://www.nmhc.go.kr" target="_blank" title="새창 - 국립망향의동산관리원">국립망향의동산관리원</a></li>
+		<li><a href="http://hi.simpan.go.kr" target="_blank" title="새창 - 건강보험분쟁조정위원회사무국">건강보험분쟁조정위원회사무국</a></li>
+							</ul>
+						</div>
+						<button type="button" class="popup-close">
+							<span class="sr-only">레이어 닫기</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="group group3">
+			<!-- <a href="#none" class="label">관련기관 홈페이지<em class="sr_only">목록 열기</e

@@ -1,0 +1,570 @@
+ndex" type="hidden" value="1"/>
+				<input id="searchNttId" name="searchNttId" type="hidden" value=""/>
+				<input id="searchSort" name="searchSort" type="hidden" value="1"/>
+				<input id="searchBbsId" name="searchBbsId" type="hidden" value="MOSFBBS_000000000028"/>
+				<input id="searchSilDeptId" name="searchSilDeptId" type="hidden" value=""/>
+				<input id="searchKeyword" name="searchKeyword" type="hidden" value=""/>
+				<input id="listType" name="listType" type="hidden" value="1"/>
+				<input id="kwd" name="kwd" type="hidden" value=""/>
+				<input type="hidden" name="bbsId" value="MOSFBBS_000000000028"/>
+				<input type="hidden" name="searchMenu" value="4010100" />
+				<dl class="dateSet">
+					<dt>검색기간</dt>
+					<dd>
+						<span class="chk">  
+							<input type="checkbox" name="searchUseYn" id="searchUseYn" value="0"  />
+							<label for="searchUseYn">날짜 미지정</label>  
+						</span>  
+						<span class="picker">  
+							<label for="searchStartDt"><span>검색기간 시작일</span></label>  
+							<input type="text" name="searchStartDt" id="searchStartDt" class="date-picker" data-date-format="yyyy.mm.dd" value="" />  
+							<button type="button"><span>시작일 선택 달력</span></button>  
+						</span> ~ 							   
+						<span class="picker">  
+							<label for="searchEndDt"><span>검색기간 종료일</span></label>  
+							<input type="text" name="searchEndDt" id="searchEndDt" class="date-picker" data-date-format="yyyy.mm.dd" value="" />  
+							<button type="button"><span>종료일 선택 달력</span></button>  
+						</span>							
+						<span class="btn_date">
+							<button type="button">1주일</button>
+							<button type="button">1개월</button>
+							<button type="button">3개월</button>
+						</span>
+					</dd>
+				</dl>
+				<dl class="cateSet">
+					<dt>검색구분</dt>
+					<dd>
+						<div class="select">
+							<div class="bdrop">
+								<button type="button" title="검색구분"><i>제목</i></button>
+								<ul>
+									<li><a href="#">제목</a></li>
+									<li><a href="#">주제어</a></li>
+									<li><a href="#">부서</a></li>
+									<li><a href="#">작성자</a></li>
+									<li><a href="#">내용</a></li>
+									<li><a href="#">제목+주제어</a></li>
+									<li><a href="#">첨부파일명</a></li>
+									<li><a href="#">전체</a></li>
+								</ul>
+								<label for="searchCondition"><span>검색구분 선택</span></label>
+								<select id="searchCondition" name="searchCondition" class="hid">
+									<option value="1">제목</option>
+									<option value="2">주제어</option>
+									<option value="3">부서</option>
+									<option value="4">작성자</option>
+									<option value="5">내용</option>
+									<option value="6">제목+주제어</option>
+									<option value="7">첨부파일명</option>
+									<option value="0">전체</option>
+								</select>
+							</div>
+						</div>
+						<span>
+							<label for="searchKeyword1">
+								<span>검색구분 - 검색어 입력</span>
+							</label>
+							<input type="text" name="searchKeyword1" id="searchKeyword1" title="검색구분 - 검색어 입력" value="" />
+							<input type="submit" value="" title="검색하기" />
+						</span>
+					</dd>
+				</dl>
+						<button class="orgButton" type="button" title="실ㆍ국별 보도자료 보기">실ㆍ국별 보도자료 보기</button>
+			</form>
+		</div>
+		<!-- 게시물 목록 옵션 -->
+		<div class="listOption">
+			<div class="optLeft">
+				<div class="total">총 게시글 : <span>22,238</span>건</div>
+			</div>
+			<div class="optRight">
+				<div class="sort">
+					<button type="button" onclick="fn_searchSort(1); return false;" class='sort on' title='선택됨'>최신순</button>
+					<button type="button" onclick="fn_searchSort(2); return false;" class='sort ' title=''>조회순</button>
+				</div>
+				<div class="rss mr15">
+							<a class="icoListOption rssServ" href='#' onclick="fn_popWindow('/com/detailRssTagService.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?bbsId=MOSFBBS_000000000028'); return false;" title="보도·참고자료 RSS서비스(새창열림)">
+								<span class="hid">RSS</span>
+							</a>
+				</div>			
+				<div class="viewType">
+					<a class="icoListOption stand on" href="javascript:fn_egov_selectListType('1');" title="목록형으로 보기"><span class="hid">목록형</span></a>				
+					<a class="icoListOption card" href="javascript:fn_egov_selectListType('2');" title="웹진형으로 보기"><span class="hid">웹진형</span></a>
+<!-- 					<button class="on" title="목록형" onclick="fn_egov_selectListType('1');"><i class="stand icoPage"></i><span>목록형</span></button> -->
+<!-- 					<button title="카드형" onclick="fn_egov_selectListType('2');"><i class="card icoPage"></i><span>카드형</span></button> -->
+				</div>
+			</div>
+		</div>
+		<div class="layerPop departLayer">
+			<div class="container">
+				<div class="header">
+					<h2>실ㆍ국별 보도자료</h2>
+				</div>
+				<div class="content">
+					<ul>
+							<li>
+								<a href='javascript:fn_dept_select("1051010","세제실");' >
+								세제실
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051012","기획조정실");' >
+								기획조정실
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051017","국고실");' >
+								국고실
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051408","혁신성장실");' >
+								혁신성장실
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051013","경제정책국");' >
+								경제정책국
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051410","경제구조개혁국");' >
+								경제구조개혁국
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051278","국제금융국");' >
+								국제금융국
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051285","개발금융국");' >
+								개발금융국
+								</a>
+							</li>
+							<li>
+								<a href='javascript:fn_dept_select("1051019","공공정책국");' >
+								공공정책국
+								</a>
+							</li>
+						<li><a href='javascript:fn_dept_select("","");'>전체보기</a></li>
+					</ul>
+				</div>
+			</div>
+			<button class="layerClose" title="레이어창 닫기"><span>레이어창 닫기</span></button>
+		</div>
+		<ul class="boardType3 explnList">
+			<!-- 공지로 젤 처음 띄우는 것은 없어 짐 -->
+			<!-- 리스트 목록 -->
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079950');">[보도참고] 2026년 11월 최근 경제동향</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.13.</span>
+							<span class="depart">경제분석과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 다운로드' 
+				href="/com/cmm/fms/FileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033132&fileSn=1" >
+				<span>첨부파일 다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->
+					<a class="icoFile fileView" title='자료 바로 열기' 
+					href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033132&fileSn=1" target="_blank">
+					<span>첨부파일 문서보기</span></a>
+			</div>	
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079949');">권대영 1차관, 「월급방위대 TF」 킥오프 회의 개최</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.13.</span>
+							<span class="depart">정책조정총괄과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033131" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033131&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079929');">범부처 민생안정지원단, 청년 취업지원 현장 점검</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.12.</span>
+							<span class="depart">민생안정지원단</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033114" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033114&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079935');">국방분야 혁신제품 최초 지정</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.12.</span>
+							<span class="depart">조달정책과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033116" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033116&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079925');">제18회 국제금융기구 채용설명회 개최</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.12.</span>
+							<span class="depart">국제기구과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033112" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033112&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079934');">양극화 대응 TF 총괄반 1차 회의 개최</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.12.</span>
+							<span class="depart">경제구조개혁총괄과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033122" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033122&fileSn=5" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079927');">영남권 메가프로젝트 이행 점검 TF 개최</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.11.</span>
+							<span class="depart">산업경제과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033108" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033108&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079922');">제3차 글로벌 핵심 투자자 협의체 개최</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.11.</span>
+							<span class="depart">국제금융과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033106" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033106&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079917');">비상경제장관회의 개최</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.11.</span>
+							<span class="depart">정책조정총괄과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033104" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033104&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+				<li>
+					<h3><a href="javascript:fn_egov_select('MOSF_000000000079916');">[보도참고] '26.10월 고용동향 및 평가</a></h3>
+					<div class="boardInfo">
+						<div class="infoLeft">
+							<span class="date">2026.11.11.</span>
+							<span class="depart">인력정책과</span>
+						</div>
+						<div class="infoRight"></div>
+					</div>
+					<div class="infoFile"><!-- 첨부파일이 중심이 되는 게시판 -->
+			<div class="file">
+				<a class="icoFile fileDown" title='자료 전체다운로드' 
+				href="/com/cmm/fms/AtchZipFileDown.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033103" >
+				<span>첨부파일 전체다운로드</span></a>
+				<!--  처리요 : 원래는 삭제 해제 해야 함 -->						
+						<a class="icoFile fileView" title='자료 바로 열기' 
+						href="/com/synap/synapView.do;jsessionid=kc8tNg6a3Tdqo9kQz8JvkWoPnBIizf9x8IAIMSus.node20?atchFileId=ATCH_000000000033103&fileSn=1" target="_blank">
+						<span>첨부파일 문서보기</span></a>
+			</div>
+<!-- 			<div class="file"> -->
+<!-- 				<a href="javascript:" class="hwp"><span>파일 다운로드</span></a> -->
+<!-- 				<button class="file_open"><span>파일 열기</span></button> -->
+<!-- 				<div class="file_layer"> -->
+<!-- 					<div> -->
+<!-- 						<ul> -->
+<!-- 								<li> -->
+<!-- 									</span> -->
+<!-- 									 처리요 : 원래는 zip파일만 있었음 -->
+<!-- 								</li> -->
+<!-- 						</ul> -->
+<!-- 						<p class="btn_close"><button type="button" title="검색구분"><span>닫기</span></button></p> -->
+<!-- 					</div> -->
+<!-- 				</div> -->
+<!-- 			</div> -->
+					</div>			
+				</li>
+		</ul>
+		<!-- 페이징 처리 -->	
+		<div class="boardPage"><span class="fst"><a href="?pageIndex=1" onclick="fn_egov_link_page(1);return false; " ><span>처음</span></a></span><span class="prev"><a href="?pageIndex=1" onclick="fn_egov_link_page(1);return false; "><span>이전</span></a></span><span class="num"><strong>1</strong></span><span class="num"><a href="?pageIndex=2" onclick="fn_egov_link_page(2);return false; " >2</a></span><span class="num"><a href="?pageIndex=3" onclick="fn_egov_link_page(3);return false; " >3</a></span><span class="num"><a href="?pageIndex=4" onclick="fn_egov_link_page(4);return false; " >4</a></span><span class="num"><a href="?pageIndex=5" onclick="fn_egov_link_page(5);return false; " >5</a></span><span class="next"><a href="?pageIndex=6" onclick="fn_egov_link_page(6);return false; " ><span>다음</span></a></span><span class="lst"><a href="?pageIndex=2224" onclick="fn_egov_link_page(2224);return false; " ><span>마지막</span></a></span>
+</div>
+		<!-- 만족도 조사 -->
+<!-- OPEN Start -->
+	<div class="acceptOpinion">
+		<div class="satisfy">
+			<p>이 페이지에서 제공하는 정보에 만족하셨습니까?</p>
+			<ul>
+				<li>
+					<input type="radio" name="satisfaction" id="satisfaction5" value="5" checked="checked" /><label for="satisfaction5">매우만족</label>
+				</li>
+				<li>
+					<input type="radio" name="satisfaction" id="satisfaction4" value="4"/><label for="satisfaction4">만족</label>
+				</li>
+				<li>
+					<input type="radio" name="satisfaction" id="satisfaction3" value="3"/><label for="satisfaction3">보통</label>
+				</li>
+				<li>				
+					<input type="radio" name="satisfaction" id="satisfaction2" value="2"/><label for="satisfaction2">불만족</label>
+				</li>
+				<li>
+					<input type="radio" name="satisfaction" id="satisfaction1" value="1"/><label for="satisfaction1">매우불만족</label>
+				</li>
+			</ul>
+		</div>
+		<div class="satisfy1"><p id="satiTitle">* 의견쓰기 : 60자 이내로 입력하세요. (0/60)</p></div>
+		<div class="reply">
+			<label for="wrt_opinion"><span>의견쓰기</span></label>			
+			<input type="text" id="wrt_opinion" placeholder="" value="" maxLength="132"/>
+			<input type="submit" id="stfbtn" value="평가하기" />
+		</div>
+	</div>
+	</div>
+</div>
+<!-- 컨텐츠 -->
+	<aside id="page_info"></aside>
+</main>
+<!-- layerPop : 팝업레이어 : s -->
+<section id="popFootLink1" class="krds-modal modal" data-type="full"  aria-labelledby="tit_foot_link1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="tit_foot_link1" class="modal-title">정부 관련기관 누리집</h2>
+            </div> 
+            <div class="modal-conts" tabindex="0">
+                <ul class="pop-foot-links">
+                    <li><a href="https://www.moe.go.kr" target="_blank" title="교육부 누리집 새창열림">교육부</a></li>
+                    <li><a href="https://www.msit.go.kr" target="_blank" title="과학기술정보통신부 누리집 새창열림">과학기술정보통신부</a></li>
+                    <li><a href="http://www.mofa.go.kr/" target="_blank" title="외교부 누리집 새창열림">외교부</a></li>
+                    <li><a href="http://www.unikorea.go.kr/" target="_blank" title="통일부 누리집 새창열림">통일부</a></li>
+                    <li><a href="http://www.moj.go.kr/" target="_blank" title="법무부 누리집 새창열림">법무부</a></li>
+                    <li><a href="https://www.mnd.go.kr/" target="_blank" title="국방부 누리집 새창열림">국방부</a></li>
+                    <li><a href="https://www.mois.go.kr/" target="_blank" title="행정안전부 누리집 새창열림">행정안전부</a></li>
+                    <li><a href="https://www.mcst.go.kr/" target="_blank" title="문화체육관광부 누리집 새창열림">문화체육관광부</a></li>
+                    <li><a href="https://www.mafra.go.kr" target="_blank" title="농림축산식품부 누리집 새창열림">농림축산식품부</a></li>
+                    <li><a href="http://www.motie.go.kr" target="_blank" title="산업통상부 누리집 새창열림">산업통상부</a></li>
+                    <li><a href="http://www.mohw.go.kr/" target="_blank" title="보건복지부 누리집 새창열림">보건복지부</a></li>
+                    <li><a href="http://www.me.go.kr/" target="_blank" title="기후에너지환경부 누리집 새창열림">기후에너지환경부</a></li>
+                    <li><a href="http://www.moel.go.kr/" target="_blank" title="고용노동부 누리집 새창열림">고용노동부</a></li>
+                    <li><a href="http://www.mogef.go.kr/" target="_blank" title="성평등가족부 누리집 새창열림">성평등가족부</a></li>
+                    <li><a href="https://www.molit.go.kr/" target="_blank" title="국토교통부 누리집 새창열림">국토교통부</a></li>      
+                    <li><a href="http://www.mof.go.kr/" target="_blank" title="해양수산부 누리집 새창열림">해양수산부</a></li>
+                    <li><a href="https://www.mss.go.kr/" target="_blank" title="중소벤처기업부 누리집 새창열림">중소벤처기업부</a></li>                                 
+                    <li><a

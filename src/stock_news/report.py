@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 
 from .analysis.scoring import WEIGHTS
+from .collectors.ministry_press import GOV_SOURCES, ministry_name, policy_label, posted_session
 
 FACTOR_LABELS = {"scale": "재료 규모", "exclusivity": "최초/독점", "novelty": "신규성",
                  "policy": "정책 수혜", "diffusion": "확산도",
@@ -42,10 +43,11 @@ def resolve_sources(conn, sources: list[str]) -> list[tuple[str, str]]:
                 continue
             out.append((f"[공시] {val}", f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={val}"))
         elif kind == "article":
-            r = conn.execute("SELECT title, office_name, published_at, url FROM articles WHERE id=?",
+            r = conn.execute("SELECT source, title, office_name, published_at, url FROM articles WHERE id=?",
                              (val,)).fetchone()
             if r:
-                out.append((f"[{r['office_name']}] {r['title']} ({r['published_at'][5:16]})", r["url"]))
+                tag = policy_label(r["office_name"]) if r["source"] in GOV_SOURCES else r["office_name"]
+                out.append((f"[{tag}] {r['title']} ({r['published_at'][5:16]})", r["url"]))
         elif kind in ("url", "http", "https"):
             url = val if kind == "url" else src
             if not any(u == url for _, u in out):
@@ -68,13 +70,60 @@ def basis_tags(conn, it: dict) -> list[str]:
             tags.append("공시")
         elif kind == "article":
             r = conn.execute("SELECT source FROM articles WHERE id=?", (val,)).fetchone()
-            tags.append("정책" if r and r["source"] == "korea_policy" else "뉴스")
+            tags.append("정책" if r and r["source"] in GOV_SOURCES else "뉴스")
         elif "korea.kr" in str(src):
             tags.append("정책")
     if str(it.get("id", "")).startswith("P-"):
         tags.append("정책")
     order = ["공시", "뉴스", "정책"]
     return [t for t in order if t in tags]
+
+
+def _policy_rows(conn, it: dict) -> list:
+    rows = []
+    for src in it.get("sources", []):
+        kind, _, val = str(src).partition(":")
+        q = ("SELECT a.source, a.office_name, a.published_at, p.time_basis FROM articles a "
+             "LEFT JOIN press_meta p ON p.article_id=a.id WHERE ")
+        r = None
+        if kind == "article":
+            r = conn.execute(q + "a.id=?", (val,)).fetchone()
+        elif str(src).startswith("http"):
+            r = conn.execute(q + "a.url=?", (str(src),)).fetchone()
+        if r and r["source"] in GOV_SOURCES:
+            rows.append(r)
+    return rows
+
+
+def policy_ministries(conn, it: dict) -> list[str]:
+    """정책 근거의 부처명(정책브리핑 표기는 수집 부처 표시명으로 통일). 부처별 집계·[정책:부처명] 표시용."""
+    out = []
+    for r in _policy_rows(conn, it):
+        name = ministry_name(r["office_name"])
+        if name not in out:
+            out.append(name)
+    if not out and "정책" in basis_tags(conn, it):
+        out.append("미상")
+    return out
+
+
+def policy_session(conn, it: dict) -> str | None:
+    """정책 근거의 게시 구간: '장중'(07:00~15:30 게시가 하나라도 있으면) / '장 마감 후' / None(정책 근거 없음)."""
+    rows = _policy_rows(conn, it)
+    if not rows:
+        return None
+    return "장중" if any(posted_session(r["published_at"], r["time_basis"]) == "장중" for r in rows) else "장 마감 후"
+
+
+def basis_labels(conn, it: dict) -> list[str]:
+    """표시용 근거: 공시 / 뉴스 / 정책:부처명 (정책은 부처마다 하나씩)."""
+    tags = basis_tags(conn, it)
+    out = [t for t in tags if t != "정책"]
+    if "정책" in tags:
+        out += [f"정책:{m}" for m in policy_ministries(conn, it)]
+        if policy_session(conn, it) == "장중":
+            out.append("장중 게시")
+    return out
 
 
 def disclosure_rows(candidates: dict, it: dict) -> list[dict]:
@@ -177,7 +226,8 @@ def collect_status(conn, window: dict) -> tuple[list[dict], list[str]]:
     return runs, warnings
 
 
-SOURCE_NAMES = {"naver_focus_401": "네이버 시황·전망", "korea_policy": "정책브리핑 정책뉴스", "dart": "DART 공시",
+SOURCE_NAMES = {"naver_focus_401": "네이버 시황·전망", "korea_policy": "정책브리핑 정책뉴스",
+                "ministry_press": "부처 보도자료(11개 부처)", "dart": "DART 공시",
                 "kiwoom_stocks": "종목 마스터(키움)", "kiwoom_themes": "테마(키움)", "naver_themes": "테마(네이버)"}
 
 
@@ -214,7 +264,7 @@ def evening_section(conn, good: list[dict]) -> list[str]:
         pct = lambda v: "-" if v is None else f"{v:+.1f}%"  # noqa: E731
         won = lambda v: "-" if not v else f"{v:,.0f}"  # noqa: E731
         nxt = "가능(체결 있음)" if q.get("nxt_traded") else {True: "가능", False: "**불가**"}.get(q.get("nxt_enabled"), "-")
-        L.append(f"| {n} | **{it['name']}** ({it['code']}) | {'-' if it.get('final') is None else str(it['final']) + '점'} | {'·'.join(basis_tags(conn, it)) or '-'} | "
+        L.append(f"| {n} | **{it['name']}** ({it['code']}) | {'-' if it.get('final') is None else str(it['final']) + '점'} | {'·'.join(basis_labels(conn, it)) or '-'} | "
                  f"{won(q.get('krx_close'))} | {won(q.get('price'))} | {pct(q.get('after_hours_pct'))} | "
                  f"{pct(q.get('since_disclosure_pct'))} | {(q.get('after_value') or 0) / 1e8:,.1f}억 | {nxt} | {pp} | {cmp} |")
     L += ["", "<sub>시간외 = 지금 NXT 가격 / 오늘 KRX 종가 − 1. 공시 후 = 공시 접수 직전 1분봉 대비. "
@@ -361,7 +411,7 @@ def render(conn, scored: dict, candidates: dict) -> str:
         L.append("| 순위 | 종목 | 점수 | 근거 | 재료 | 시초가 | 장초반 매수세 | 메모 |")
         L.append("|---|---|---|---|---|---|---|---|")
         for rank, it in enumerate(good, 1):
-            tags = "·".join(basis_tags(conn, it)) or "-"
+            tags = "·".join(basis_labels(conn, it)) or "-"
             sc = "-" if it.get("final") is None else f"{it['final']}점 ({it['final_raw']})"
             L.append(f"| {rank} | **{it['name']}** ({it['code']}) | {sc} | {tags} | "
                      f"{_md(it['material'])} |  |  |  |")
@@ -413,7 +463,7 @@ def render(conn, scored: dict, candidates: dict) -> str:
     L.append("## 종목별 상세")
     L.append("")
     for rank, it in enumerate(good, 1):
-        tags = " ".join(f"[{t}]" for t in basis_tags(conn, it))
+        tags = " ".join(f"[{t}]" for t in basis_labels(conn, it))
         sc = "점수 없음(간이)" if it.get("final") is None else f"{it['final']}점 {STARS.get(it['final'], '')}"
         L.append(f"### {rank}. {it['name']} ({it['code']}) — {sc} {tags}")
         L.append("")
@@ -466,6 +516,8 @@ def render(conn, scored: dict, candidates: dict) -> str:
         for r in reviewed:
             g = gov.get(r.get("id"), {})
             title = f"[{_md(r.get('title') or g.get('title'))}]({g['url']})" if g.get("url") else _md(r.get("title"))
+            if g.get("intraday"):
+                title += " ⏱장중 게시"
             picked = ", ".join(names.get(code, code) for code in r.get("picked", [])) or "-"
             L.append(f"| {title} | {_md(g.get('dept'))} | {picked} | {_md(r.get('note'))} |")
     elif gov:
@@ -483,5 +535,11 @@ def render(conn, scored: dict, candidates: dict) -> str:
         L.append(f"| {SOURCE_NAMES.get(run['source'], run['source'])} | {run['fetched']} | "
                  f"{(run['finished_at'] or run['started_at'])[5:16]} | {len(run['warnings']) or '-'} |")
     L.append("")
+    press = next((r for r in runs if r["source"] == "ministry_press" and r.get("detail")), None)
+    if press:
+        per = json.loads(press["detail"])
+        L.append("부처 보도자료(시간대 안): " + " · ".join(
+            f"{v['name']} {v['in_window']}" + (" ⚠️" if v.get("error") else "") for v in per.values()))
+        L.append("")
     L.append(f"<sub>생성: scored.json · candidates.json ({date}) / DB data/stock_news.db</sub>")
     return "\n".join(L) + "\n"

@@ -1,0 +1,1113 @@
+     <div class="lnb_titbox">
+              <h2 class="lnb_tit"><span>새소식</span></h2>
+                </div>
+              <ul class="lnb_list">
+              	<li data-page="1">
+						<a href="javascript:fn_menulast_go('user', '208', '307', '/bbs/list.do');" target="_self" class="on">보도자료</a>
+                            </li>
+				 <li data-page="2">
+						<a href="javascript:fn_menulast_go('user', '208', '309', '/bbs/list.do');" target="_self" >보도설명</a>
+                            </li>
+				 <li data-page="3">
+						<a href="javascript:fn_menulast_go('user', '208', '213', '/bbs/list.do');" target="_self" >포토뉴스</a>
+                            </li>
+				 <li data-page="4">
+						<a href="javascript:fn_menulast_go('user', '208', '214', '/bbs/list.do');" target="_self" >카드뉴스</a>
+                            </li>
+				 <li data-page="5">
+						<a href="javascript:fn_menulast_go('user', '208', '294', '/bbs/list.do');" target="_self" >인사</a>
+                            </li>
+				 </ul>
+                </div>
+                <div class="sub_content">
+                <div class="sub_con_head">
+                <h1 class="title"><span>보도자료</span></h1>
+                <nav>
+                    <ul class="sub_location">
+                    <li><a href="/index.do" class="ico_home"  title="메인페이지 바로가기">홈</a></li>
+                    <li><a href="javascript:fn_menulast_go('user', '1', '208', '/submain/index.do');">새소식</a></li>
+                        <li><a href="javascript:fn_menulast_go('user', '208', '307', '/bbs/list.do');">보도자료</a></li>
+                        </ul>
+                </nav>
+                <ul class="right_btns">
+					<li class="share">
+						<a href="#shareBox" onclick="shareToggle(); return false;" class="ico ico_share"><span class="blind">공유하기</span></a>
+						<div class="share_box" id="shareBox">
+							<h3 class="tit">공유하기</h3>
+							<ul>
+								<li><a href="javascript:sendSns('facebook', '', document.location.href);" class="ico" title="새창열림" style="background-image: url(/images/user/sub/ico_share_sns_facebook.svg)">페이스북으로 공유하기</a></li>
+								<li><a href="javascript:sendSns('twitter', '', document.location.href);" class="ico" title="새창열림" style="background-image: url(/images/user/sub/ico_share_sns_twitter.svg)">엑스로 공유하기</a></li>
+								<li><a href="javascript:sendSns('url', '', document.location.href);" class="ico sns-link" title="URL복사하기" style="background-image: url(/images/user/sub/ico_share_sns_url.svg)">URL복사하기</a></li>
+							</ul>
+							<button type="button" class="close_sharebox" onclick="shareToggle()"><span class="blind">닫기</span></button>
+						</div>
+					</li>
+					<li class="print"><a href="javascript:printView();" title="새창열림" class="ico ico_print"><span class="blind">인쇄</span></a></li>
+                </ul>
+              </div>
+			<div class="sub_cont">
+                <!-- js_tab -->
+                <!-- <div class="js_tab"> -->
+			<div class="tab_wrap">
+					</div>
+                <!--// js_tab -->
+            <!-- in_tab -->
+			<!-- 본문. 스킵 네비게이션이 여기로 온다 -->
+			<main id="skiphome" tabindex="-1">
+<!-- <form name="actionForm" id="search-form" method="post" action="/bbs/list.do" enctype="multipart/form-data"> -->
+<form name="actionForm" id="search-form" method="get" action="/bbs/list.do"  enctype="multipart/form-data" >
+	<input type="hidden" name="sCode" 	value="user"/>
+	<input type="hidden" name="mId" 	value="307"/>
+	<input type="hidden" name="mPid" 	value="208"/>
+	<input type="hidden" name="pageIndex"/>
+	<input type="hidden" name="bbsSeqNo" id="bbsSeqNo" value="94"/>
+	<input type="hidden" name="nttSeqNo" id="nttSeqNo" value=""/>
+	<!-- 검색영역 s -->
+	<div class="board_head">
+		<div class="board_search">
+			<div class="bd_total" aria-label="게시글 수">총 <span class="navy">   17,712</span>건</div>
+			<div class="form">
+				<!-- (2025-08 품질개선) 검색영역 label 추가	 (start) -->
+				<!-- (2025-08 품질개선) 검색영역 label 추가	 (end) -->
+				<span class="input_select">
+					<!-- (2025-08 품질개선) 검색영역 label 추가	 (start) -->
+					<label for="searchOpt" class="label_select">구분</label>
+					<!-- (2025-08 품질개선) 검색영역 label 추가	 (end) -->
+                   	<select id="searchOpt" name="searchOpt" title="검색조건 선택">
+                       	<option value="ALL" >전체</option>
+                       	<!--보도자료는 관리자에서 내용검색을 체크하더라도 검색 안되게 수정함(속도및 상세에 내용이 없으므로)_20201116  -->
+												<option value="NTT_SJ" > 제목</option>
+												<!--보도자료는 관리자에서 내용검색을 체크하더라도 검색 안되게 수정함(속도및 상세에 내용이 없으므로)_20201116  -->
+												<!--보도자료는 관리자에서 내용검색을 체크하더라도 검색 안되게 수정함(속도및 상세에 내용이 없으므로)_20201116  -->
+												<option value="CHRG_DEPT_NM" > 부서</option>
+												<!--보도자료는 관리자에서 내용검색을 체크하더라도 검색 안되게 수정함(속도및 상세에 내용이 없으므로)_20201116  -->
+												<option value="NTCR" > 담당자</option>
+												</select>
+				</span>
+				<span class="input_text">
+					<label for="searchTxt" class="blind">검색어 입력</label>
+					<!-- (2025-08 품질개선) escapeXml 제거 (start) -->
+					<input name="searchTxt" title="검색어 입력" class="search_input" id="searchTxt" type="text" placeholder="검색어를 입력하세요." value="" />
+					<!-- (2025-08 품질개선) escapeXml 제거 (end) -->
+					<!-- (2025-08 품질개선) 입력창 입력 초기화 추가	 (start) -->
+					<button type="button" class="btn_clear" onclick="javascript:searchClear(event);"><span class="blind">초기화</span></button>
+					<!-- (2025-08 품질개선) 입력창 입력 초기화 추가	 (end) -->
+				</span>
+				<button id="btn_search" class="btn" onclick="javascript:search();" type="button"><span class="blind">검색</span></button>
+			</div>
+		</div>
+	</div>
+	<!-- //검색영역 e -->
+</form>
+<div id="result">
+	<div class="board_list">
+		<!-- 리더기 숨김 thead -->
+		<div class="toggle thead">
+			<a aria-hidden="true">
+				<div class="num"><span class="th">번호</span></div>
+				<div class="txt"><span class="th">제목</span></div>
+				<div class="file"><span class="th">첨부</span></div>
+				<div class="date"><span class="th">등록일</span></div>
+			</a>
+		</div>
+		<!-- 상단고정게시글 -->
+		<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187963" onclick="fn_detail(3187963); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_0" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_0">[관계부처 합동] (보도 참고 자료) 구글사 지도 국외 반출 허가 조건이행 결과 협의체 보고</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_0" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_0" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_0" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_0" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_0" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187960" onclick="fn_detail(3187960); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_1" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_1">「대한민국 인터넷 대상」 및 「디지털 혁신상」 시상식 개최</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_1" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_1" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_1" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_1" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_1" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187961" onclick="fn_detail(3187961); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_2" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_2">기업과 대학이 함께 키운 정보통신기술 인재, 연구·교육과정 운영 성과 공유</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_2" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_2" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_2" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_2" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_2" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187959" onclick="fn_detail(3187959); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_3" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_3">미래 인공지능·정보통신기술 기술 혁신,  한-해외 연구자가 함께 만들어 간다</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_3" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_3" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_3" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_3" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_3" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187958" onclick="fn_detail(3187958); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_4" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_4">제27차 한·불 원자력 공동조정위원회 개최</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_4" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_4" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_4" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_4" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_4" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187956" onclick="fn_detail(3187956); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_5" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_5">인공지능 안전 국민 점검단 「인공지능 안전 지킴이」 출범</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_5" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_5" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_5" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_5" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_5" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187957" onclick="fn_detail(3187957); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_6" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_6">민간 첨단기술과 국방의 연결, 제4회 미래 국방 기술교류회 개최</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_6" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_6" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_6" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_6" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_6" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187953" onclick="fn_detail(3187953); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_7" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_7">사물인터넷 제품, 제조사의 적극적 보안 강화와 소비자의 보안 수칙 실천이 필요</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_7" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_7" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_7" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_7" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_7" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187951" onclick="fn_detail(3187951); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_8" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_8">실험실의 상상, 세상의 사업이 되다”  「2026 대한민국 심층 기술 사업화 축제」 개최</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_8" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_8" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_8" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_8" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_8" ></div>
+													</a>
+							</div>
+						<div class="toggle">
+								<a href="/bbs/view.do?sCode=user&amp;mId=307&amp;mPid=208&amp;bbsSeqNo=94&amp;nttSeqNo=3187950" onclick="fn_detail(3187950); return false;" title="상세보기">
+									<div class="num" aria-label="번호" id="td_NO_9" ></div>
+													<div class="txt" aria-label="제목">
+															<p class="title" id="td_NTT_SJ_9">인공지능 시대의 사회적 쟁점,  국민과 함께 해법 찾는다</p>
+															<div class="meta">
+																<dl class="tit_con">
+																						<dt class="tit"> 부서</dt>
+																						<dd class="con" id="td_CHRG_DEPT_NM_9" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 담당자</dt>
+																						<dd class="con" id="td_NTCR_9" ></dd>
+																					</dl>
+																				<dl class="tit_con">
+																						<dt class="tit"> 연락처</dt>
+																						<dd class="con" id="td_TELNO_9" ></dd>
+																					</dl>
+																				</div>
+														</div>
+													<div class="file" aria-label="첨부" id="td_FILE_9" ></div>
+													<div class="date" aria-label="등록일" id="td_REG_DT_9" ></div>
+													</a>
+							</div>
+						<!-- 공지 있는 줄: 개발필요 -->
+		<!-- 	<div class="toggle">
+				<a href="javascript:;" title="상세보기">
+					<div class="num" aria-label="번호">
+						<span class="tag">공지</span>
+					</div>
+					<div class="txt" aria-label="제목">
+						<p class="title">[개발필요] 공지 가 있는 줄을 표시하는 줄 입니다.</p>
+					</div>
+					<div class="file" aria-label="첨부">
+						<span class="icon"><span class="blind">첨부파일</span></span>
+					</div>
+					<div class="date" aria-label="등록일">2024-02-02</div>
+				</a>
+			</div> -->
+	</div>
+	<!-- // end board_list -->
+	<!-- // start board_paging -->
+	<div class="board_paging" id="pageNavi">
+		<div class="page-links"><a class="page-link" href="#" aria-current="page">1</a><a title="2페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=2" onclick="fn_paging(2);return false; ">2</a><a title="3페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=3" onclick="fn_paging(3);return false; ">3</a><a title="4페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=4" onclick="fn_paging(4);return false; ">4</a><a title="5페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=5" onclick="fn_paging(5);return false; ">5</a><a title="6페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=6" onclick="fn_paging(6);return false; ">6</a><a title="7페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=7" onclick="fn_paging(7);return false; ">7</a><a title="8페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=8" onclick="fn_paging(8);return false; ">8</a><a title="9페이지로 이동" class="page-link" href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=9" onclick="fn_paging(9);return false; ">9</a><span class="page-link link-dot mdot"></span><span class="page-link link-dot"></span><a href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=1772" class="page-link" onclick="fn_paging(1772);return false; ">1772</a></div><a href="/bbs/list.do?sCode=user&amp;mId=307&amp;mPid=208&amp;pageIndex=2" class="page-navi next" onclick="fn_paging(2);return false; ">다음</a>
+</div>
+	<!-- // end board_paging -->
+	</div>
+<script>
+	$('#td_'+'NO'+'_0').html('17712');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_0').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_0').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_0').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_1').html('17711');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_1').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_1').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_1').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_2').html('17710');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_2').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_2').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_2').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_3').html('17709');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_3').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_3').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_3').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_4').html('17708');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_4').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_4').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_4').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_5').html('17707');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_5').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_5').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_5').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_6').html('17706');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_6').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_6').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_6').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_7').html('17705');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_7').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_7').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_7').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_8').html('17704');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_8').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_8').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_8').html('');
+						}
+					} */
+	$('#td_'+'NO'+'_9').html('17703');
+	var replyHrml = '';
+	/*  if('NO' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NO'+'_9').html('');
+						}
+					}
+					if('NO' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NO'+'_9').html('');
+						}
+					}
+					if('NO' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NO'+'_9').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187963)"';
+	// 							sHtml+='class="" data-value="3187963">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('[관계부처 합동] (보도 참고 자료) 구글사 지도 국외 반출 허가 조건이행 결과 협의체 보고');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_0').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_0').html('<a href="javascript:;" onclick="fn_detail("3187963")" class="" data-value="3187963"><span>[관계부처 합동] (보도 참고 자료) 구글사 지도 국외 반출 허가 조건이행 결과 협의체 보고</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_0').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_0').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_0').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187960)"';
+	// 							sHtml+='class="" data-value="3187960">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('「대한민국 인터넷 대상」 및 「디지털 혁신상」 시상식 개최');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_1').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_1').html('<a href="javascript:;" onclick="fn_detail("3187960")" class="" data-value="3187960"><span>「대한민국 인터넷 대상」 및 「디지털 혁신상」 시상식 개최</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_1').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_1').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_1').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187961)"';
+	// 							sHtml+='class="" data-value="3187961">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('기업과 대학이 함께 키운 정보통신기술 인재, 연구·교육과정 운영 성과 공유');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_2').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_2').html('<a href="javascript:;" onclick="fn_detail("3187961")" class="" data-value="3187961"><span>기업과 대학이 함께 키운 정보통신기술 인재, 연구·교육과정 운영 성과 공유</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_2').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_2').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_2').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187959)"';
+	// 							sHtml+='class="" data-value="3187959">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('미래 인공지능·정보통신기술 기술 혁신,  한-해외 연구자가 함께 만들어 간다');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_3').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_3').html('<a href="javascript:;" onclick="fn_detail("3187959")" class="" data-value="3187959"><span>미래 인공지능·정보통신기술 기술 혁신,  한-해외 연구자가 함께 만들어 간다</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_3').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_3').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_3').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187958)"';
+	// 							sHtml+='class="" data-value="3187958">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('제27차 한·불 원자력 공동조정위원회 개최');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_4').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_4').html('<a href="javascript:;" onclick="fn_detail("3187958")" class="" data-value="3187958"><span>제27차 한·불 원자력 공동조정위원회 개최</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_4').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_4').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_4').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187956)"';
+	// 							sHtml+='class="" data-value="3187956">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('인공지능 안전 국민 점검단 「인공지능 안전 지킴이」 출범');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_5').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_5').html('<a href="javascript:;" onclick="fn_detail("3187956")" class="" data-value="3187956"><span>인공지능 안전 국민 점검단 「인공지능 안전 지킴이」 출범</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_5').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_5').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_5').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187957)"';
+	// 							sHtml+='class="" data-value="3187957">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('민간 첨단기술과 국방의 연결, 제4회 미래 국방 기술교류회 개최');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_6').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_6').html('<a href="javascript:;" onclick="fn_detail("3187957")" class="" data-value="3187957"><span>민간 첨단기술과 국방의 연결, 제4회 미래 국방 기술교류회 개최</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_6').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_6').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_6').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187953)"';
+	// 							sHtml+='class="" data-value="3187953">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('사물인터넷 제품, 제조사의 적극적 보안 강화와 소비자의 보안 수칙 실천이 필요');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_7').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_7').html('<a href="javascript:;" onclick="fn_detail("3187953")" class="" data-value="3187953"><span>사물인터넷 제품, 제조사의 적극적 보안 강화와 소비자의 보안 수칙 실천이 필요</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_7').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_7').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_7').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187951)"';
+	// 							sHtml+='class="" data-value="3187951">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('실험실의 상상, 세상의 사업이 되다”  「2026 대한민국 심층 기술 사업화 축제」 개최');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_8').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_8').html('<a href="javascript:;" onclick="fn_detail("3187951")" class="" data-value="3187951"><span>실험실의 상상, 세상의 사업이 되다”  「2026 대한민국 심층 기술 사업화 축제」 개최</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_8').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_8').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_8').html('');
+						}
+					} */
+	var replyHrml = '';
+	var newHtml = '';
+	/* if('new' == 'new'){
+							newHtml ='<img src="/asset/images/user/sub/ico-new.png" alt="new">';
+						} */
+	var ctgryHtml = '';
+	/* if('' != ''){
+							ctgryHtml = '[' + '' + ']' + '&nbsp;';
+						} */
+	var sHtml = replyHrml;
+	// 							sHtml+='<a href="javascript:;" onclick="';
+	// 							sHtml+='fn_detail(3187950)"';
+	// 							sHtml+='class="" data-value="3187950">';
+	sHtml+= unescape(ctgryHtml);
+	sHtml+= unescape('인공지능 시대의 사회적 쟁점,  국민과 함께 해법 찾는다');
+	sHtml+= newHtml;
+	// 							sHtml+= '</span></a>';
+	$('#td_'+'NTT_SJ'+'_9').html(sHtml);
+	//$('#td_'+'NTT_SJ'+'_9').html('<a href="javascript:;" onclick="fn_detail("3187950")" class="" data-value="3187950"><span>인공지능 시대의 사회적 쟁점,  국민과 함께 해법 찾는다</span></a></b>');
+	/*  if('NTT_SJ' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_9').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_9').html('');
+						}
+					}
+					if('NTT_SJ' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTT_SJ'+'_9').html('');
+						}
+					} */
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_0').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_0').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_0').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_0').html('디지털신산업제도과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_1').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_1').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_1').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_1').html('디지털신산업제도과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_2').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_2').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_2').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_2').html('정보통신산업기반과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_3').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_3').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_3').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_3').html('정보통신방송기술정책과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_4').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_4').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_4').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_4').html('원자력연구협력팀 ');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_5').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_5').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_5').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_5').html('인공지능안전신뢰정책과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_6').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_6').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_6').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_6').html('국방연구개발투자기획팀');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_7').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_7').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_7').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_7').html('정보보호산업과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_8').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_8').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_8').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_8').html('연구성과혁신정책과');
+	var replyHrml = '';
+	/*  if('CHRG_DEPT_NM' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_9').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_9').html('');
+						}
+					}
+					if('CHRG_DEPT_NM' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'CHRG_DEPT_NM'+'_9').html('');
+						}
+					} */
+			$('#td_'+'CHRG_DEPT_NM'+'_9').html('인공지능안전신뢰지원과');
+	var replyHrml = '';
+	/*  if('NTCR' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_0').html('');
+						}
+					}
+					if('NTCR' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_0').html('');
+						}
+					}
+					if('NTCR' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_0').html('');
+						}
+					} */
+			$('#td_'+'NTCR'+'_0').html('장영재  사무관 ');
+	var replyHrml = '';
+	/*  if('NTCR' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_1').html('');
+						}
+					}
+					if('NTCR' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_1').html('');
+						}
+					}
+					if('NTCR' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_1').html('');
+						}
+					} */
+			$('#td_'+'NTCR'+'_1').html('남승진  사무관 , 김동근  주무관 ');
+	var replyHrml = '';
+	/*  if('NTCR' == 'NTT_CT1'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_2').html('');
+						}
+					}
+					if('NTCR' == 'NTT_CT2'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_2').html('');
+						}
+					}
+					if('NTCR' == 'NTT_CT3'){
+						if('' != ''){
+							$('#td_'+'NTCR'+'_2').html('');
+						}
+					} */
+			$('#td_'+'NTCR'+'_2').html('류혜원  사무관,  신웅재 주무관 ');
+	var replyHrml = '';
+	/*  if('NTCR' == 'NTT_CT1'){
+						if('' != ''){
+							$('
+<script>$('#td_'+'CHRG_DEPT_NM'+'_0').html('');$('#td_'+'CHRG_DEPT_NM'+'_0').html('');$('#td_'+'CHRG_DEPT_NM'+'_0').html('');$('#td_'+'CHRG_DEPT_NM'+'_0').html('디지털신산업제도과');$('#td_'+'CHRG_DEPT_NM'+'_1').html('');$('#td_'+'CHRG_DEPT_NM'+'_1').html('');$('#td_'+'CHRG_DEPT_NM'+'_1').html('');$('#td_'+'CHRG_DEPT_NM'+'_1').html('디지털신산업제도과');$('#td_'+'CHRG_DEPT_NM'+'_2').html('');$('#td_'+'CHRG_DEPT_NM'+'_2').html('');$('#td_'+'CHRG_DEPT_NM'+'_2').html('');$('#td_'+'CHRG_DEPT_NM'+'_2').html('정보통신산업기반과');$('#td_'+'CHRG_DEPT_NM'+'_3').html('');$('#td_'+'CHRG_DEPT_NM'+'_3').html('');$('#td_'+'CHRG_DEPT_NM'+'_3').html('');$('#td_'+'CHRG_DEPT_NM'+'_3').html('정보통신방송기술정책과');$('#td_'+'CHRG_DEPT_NM'+'_4').html('');$('#td_'+'CHRG_DEPT_NM'+'_4').html('');$('#td_'+'CHRG_DEPT_NM'+'_4').html('');$('#td_'+'CHRG_DEPT_NM'+'_4').html('원자력연구협력팀 ');$('#td_'+'CHRG_DEPT_NM'+'_5').html('');$('#td_'+'CHRG_DEPT_NM'+'_5').html('');$('#td_'+'CHRG_DEPT_NM'+'_5').html('');$('#td_'+'CHRG_DEPT_NM'+'_5').html('인공지능안전신뢰정책과');$('#td_'+'CHRG_DEPT_NM'+'_6').html('');$('#td_'+'CHRG_DEPT_NM'+'_6').html('');$('#td_'+'CHRG_DEPT_NM'+'_6').html('');$('#td_'+'CHRG_DEPT_NM'+'_6').html('국방연구개발투자기획팀');$('#td_'+'CHRG_DEPT_NM'+'_7').html('');$('#td_'+'CHRG_DEPT_NM'+'_7').html('');$('#td_'+'CHRG_DEPT_NM'+'_7').html('');$('#td_'+'CHRG_DEPT_NM'+'_7').html('정보보호산업과');$('#td_'+'CHRG_DEPT_NM'+'_8').html('');$('#td_'+'CHRG_DEPT_NM'+'_8').html('');$('#td_'+'CHRG_DEPT_NM'+'_8').html('');$('#td_'+'CHRG_DEPT_NM'+'_8').html('연구성과혁신정책과');$('#td_'+'CHRG_DEPT_NM'+'_9').html('');$('#td_'+'CHRG_DEPT_NM'+'_9').html('');$('#td_'+'CHRG_DEPT_NM'+'_9').html('');$('#td_'+'CHRG_DEPT_NM'+'_9').html('인공지능안전신뢰지원과');$('#td_'+'REG_DT'+'_0').html('');$('#td_'+'REG_DT'+'_0').html('');$('#td_'+'REG_DT'+'_0').html('');$('#td_'+'REG_DT'+'_0').html('2026-11-13');$('#td_'+'REG_DT'+'_0').html('2026-11-13');$('#td_'+'REG_DT'+'_0').html('Nov 13, 2026');$('#td_'+'REG_DT'+'_1').html('');$('#td_'+'REG_DT'+'_1').html('');$('#td_'+'REG_DT'+'_1').html('');$('#td_'+'REG_DT'+'_1').html('2026-11-13');$('#td_'+'REG_DT'+'_1').html('2026-11-13');$('#td_'+'REG_DT'+'_1').html('Nov 13, 2026');$('#td_'+'REG_DT'+'_2').html('');$('#td_'+'REG_DT'+'_2').html('');$('#td_'+'REG_DT'+'_2').html('');$('#td_'+'REG_DT'+'_2').html('2026-11-13');$('#td_'+'REG_DT'+'_2').html('2026-11-13');$('#td_'+'REG_DT'+'_2').html('Nov 13, 2026');$('#td_'+'REG_DT'+'_3').html('');$('#td_'+'REG_DT'+'_3').html('');$('#td_'+'REG_DT'+'_3').html('');$('#td_'+'REG_DT'+'_3').html('2026-11-12');$('#td_'+'REG_DT'+'_3').html('2026-11-13');$('#td_'+'REG_DT'+'_3').html('Nov 13, 2026');$('#td_'+'REG_DT'+'_4').html('');$('#td_'+'REG_DT'+'_4').html('');$('#td_'+'REG_DT'+'_4').html('');$('#td_'+'REG_DT'+'_4').html('2026-11-12');$('#td_'+'REG_DT'+'_4').html('2026-11-13');$('#td_'+'REG_DT'+'_4').html('Nov 13, 2026');$('#td_'+'REG_DT'+'_5').html('');$('#td_'+'REG_DT'+'_5').html('');$('#td_'+'REG_DT'+'_5').html('');$('#td_'+'REG_DT'+'_5').html('2026-11-12');$('#td_'+'REG_DT'+'_5').html('2026-11-12');$('#td_'+'REG_DT'+'_5').html('Nov 12, 2026');$('#td_'+'REG_DT'+'_6').html('');$('#td_'+'REG_DT'+'_6').html('');$('#td_'+'REG_DT'+'_6').html('');$('#td_'+'REG_DT'+'_6').html('2026-11-12');$('#td_'+'REG_DT'+'_6').html('2026-11-12');$('#td_'+'REG_DT'+'_6').html('Nov 12, 2026');$('#td_'+'REG_DT'+'_7').html('');$('#td_'+'REG_DT'+'_7').html('');$('#td_'+'REG_DT'+'_7').html('');$('#td_'+'REG_DT'+'_7').html('2026-11-11');$('#td_'+'REG_DT'+'_7').html('2026-11-12');$('#td_'+'REG_DT'+'_7').html('Nov 12, 2026');$('#td_'+'REG_DT'+'_8').html('');$('#td_'+'REG_DT'+'_8').html('');$('#td_'+'REG_DT'+'_8').html('');$('#td_'+'REG_DT'+'_8').html('2026-11-11');$('#td_'+'REG_DT'+'_8').html('2026-11-12');$('#td_'+'REG_DT'+'_8').html('Nov 12, 2026');$('#td_'+'REG_DT'+'_9').html('');$('#td_'+'REG_DT'+'_9').html('');$('#td_'+'REG_DT'+'_9').html('');$('#td_'+'REG_DT'+'_9').html('2026-11-11');$('#td_'+'REG_DT'+'_9').html('2026-11-12');$('#td_'+'REG_DT'+'_9').html('Nov 12, 2026');</script>

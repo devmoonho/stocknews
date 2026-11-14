@@ -1,0 +1,357 @@
+/i>
+									</a>								
+								</li>
+						</ul>
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" title="">
+								<a href="/USR/BORD0201/m_69/BRD.jsp" >
+									<i>공지사항</i>
+								</a>	
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" title="">
+								<a href="/USR/INSA/m_79/lst.jsp" >
+									<i>인사발령</i>
+								</a>	
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" aria-expanded="false">
+								<a href="#left" >
+									<i>일자리정보</i>
+								</a>	
+							<!-- 2단계 메뉴 -->
+							<ul style="display:none">
+									<li
+									>
+									<a href="
+									/USR/BORD0201/m_81/BRD.jsp"
+											>
+										<i>
+											채용정보
+										</i>
+									</a>								
+								</li>
+									<li
+									>
+									<a href="
+										/USR/BORD0201/m_80/BRD.jsp?cate=개방형직위"
+											>
+										<i>
+											개방형직위
+										</i>
+									</a>								
+								</li>
+									<li
+									>
+									<a href="
+										/USR/BORD0201/m_34679/BRD.jsp?cate=공모직위"
+											>
+										<i>
+											공모직위
+										</i>
+									</a>								
+								</li>
+									<li
+									>
+									<a href="
+										/USR/BORD0201/m_34680/BRD.jsp?cate=산하기관채용"
+											>
+										<i>
+											산하기관채용
+										</i>
+									</a>								
+								</li>
+						</ul>
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" title="">
+								<a href="/USR/BORD0201/m_82/BRD.jsp" >
+									<i>자격시험안내</i>
+								</a>	
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" title="">
+								<a href="/USR/tender/m_83/lst.jsp" >
+									<i>입찰안내</i>
+								</a>	
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" title="">
+								<a href="/USR/standard/m_34775/lst.jsp" >
+									<i>사전규격공고</i>
+								</a>	
+					</li>
+							<!-- 1단계 메뉴 -->
+							<li class="" title="">
+								<a href="/USR/awardTarget/m_84/lst.jsp" >
+									<i>정부포상</i>
+								</a>	
+					</li>
+				</ul>
+			</div>
+			<div class="wrap-content">
+				<div class="wrap-breadcrumb">
+					<ul class="breadcrumb">
+						<li class='home'><a href="/portal.do" target="_self">Home</a></li><li><a href="/USR/NEWS/m_71/lst.jsp" target="_self">뉴스·소식</a></li><li class='on' title='선택됨'><a href="#" target="_self">보도자료</a></li>
+					</ul>
+				</div>
+				<div class="cont-head">            
+					<h3><i>보도자료</i></h3>
+					<button title="새 창 열림" class="print" onclick="window.open('/print_portal_2016.jsp?src_folder=content-area' + '&' + 'minwon', 'printPage', 'scrollbars=yes width=642 height=600');return false;" ><i>프린트</i></button>
+				</div>        
+				<article id="cont-body" class="cont-body">
+<!--검색-->
+<form name="searchFrm" method="post" action="lst.jsp" onsubmit="sub_mit();return false">
+	<input type="hidden" name="flag" value="I" />
+	<input type="hidden" name="r_id" value="" />
+	<!-- 게시판 : 검색 -->
+	<div class="bd_search">
+		<fieldset>
+			<legend>검색</legend>
+			<div class="sear_double">
+				<label for="search_section">분야</label>
+				<div class="sear_word_sel">
+					<select name="search_section" id="search_section" title="분야선택">
+						<option value="">전체</option>
+						<option value="p_sec_1">일반</option>
+						<option value="p_sec_3">건설</option>
+						<option value="p_sec_5">교통물류</option>
+						<option value="p_sec_9">국토도시</option>
+						<option value="p_sec_4">도로철도</option>
+						<option value="p_sec_12">모빌리티자동차</option>
+						<option value="p_sec_2">주택토지</option>
+						<option value="p_sec_7">항공</option>
+					</select>
+				</div>
+				<div class="sear_part">
+					<label for="srch_dept_nm">부서</label>
+					<input type="hidden" name="srch_dept_id" id="srch_dept_id" value="" />
+					<input type="text" name="srch_dept_nm" id="srch_dept_nm" value="" title="부서입력" />
+					<button type="button" title="새창열림" onclick="selectDept('searchFrm', 'srch_dept_id', 'srch_dept_nm', '', '1613000', 'Y');return false;"><i>부서찾기</i></button>
+				</div>
+			</div>
+			<div class="sear_date">
+				<label for="search_regdate_s">등록일자</label>
+				<span>
+					<input type="text" name="search_regdate_s" id="search_regdate_s" value="2025-11-14" title="등록일자 검색 시작일" />
+					<a href="#" onclick='window.open("/LCMS/calendar/calendar_standard.jsp?retObj=search_regdate_s","_calendar","width=220, height=230");return false;' target="_blank" title="등록일자 달력검색 시작일">달력</a>
+				</span>
+				<span>
+					<input type="text" name="search_regdate_e" id="search_regdate_e" value="2026-11-14" title="등록일자 검색 종료일" />
+					<a href="#" onclick='window.open("/LCMS/calendar/calendar_standard.jsp?retObj=search_regdate_e","_calendar","width=220, height=230");return false;' target="_blank" title="등록일자 달력검색 종료일">달력</a>
+				</span>
+				( 예 : 2009-02-08 )
+			</div>
+			<div class="sear_word">
+				<label for="searchBox">주제어</label>
+				<div class="sear_sel_btn">
+					<i><input type="checkbox" name="srch_usr_titl" id="srch_usr_titl" value="Y"  checked="checked"/><label for="srch_usr_titl">제목</label></i>
+					<i><input type="checkbox" name="srch_usr_ctnt" id="srch_usr_ctnt" value="Y" /><label for="srch_usr_ctnt">내용</label></i>
+				</div>
+				<div class="sear_word_txt">
+					<input type="text" id="searchBox" name="search" value="" onblur="this.value=this.value.replace(/(^\s*)|(\s*$)/g, '');"  title="주제어입력" />
+					<button type="submit"><i>검색</i></button>
+				</div>
+			</div>
+		</fieldset>
+	</div>
+</form>
+<!-- 게시판 : 목록 -->
+<div class="bd_info">전체 <strong>832</strong>건</div>
+	<table class="table line_no bd_tbl bd_tbl_ul">
+		<caption>보도자료 목록으로 번호, 제목, 분야, 등록일, 조회정보가 확인되고, 제목을 선택시 선택한 정보의 상세페이지로 이동합니다.</caption>
+		<col class="bd_num" />
+			<col class="bd_title" />
+			<col class="bd_field" />
+		<col class="bd_date" />
+		<col class="bd_inquiry" />
+		<thead>
+			<tr>
+				<th scope="col" class="bd_num">번호</th>
+					<th scope="col" class="bd_title">제목</th>
+					<th scope="col" class="bd_field">분야</th>
+				<th scope="col" class="bd_date">등록일</th>
+				<th scope="col" class="bd_inquiry">조회</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td class="bd_num">832</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092601" class="new">
+							[장관동정] 홍지선 장관, “본격적인 추위 시작… 겨울철 제설대책 이행 철저”
+						<i><img src="/images/www2019/board/bd_new.gif" alt="새글" /></i>
+						</a>
+					</td>
+					<td class="bd_field">도로철도</td>
+				<td class="bd_date">2026-11-13</td>
+				<td class="bd_inquiry">282</td>
+			</tr>
+			<tr>
+				<td class="bd_num">831</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092597" class="">
+							[장관동정] 홍지선 장관, “교통산업의 지속적 성장을 위해 지원 아끼지 않을 것”
+						</a>
+					</td>
+					<td class="bd_field">교통물류</td>
+				<td class="bd_date">2026-11-13</td>
+				<td class="bd_inquiry">709</td>
+			</tr>
+			<tr>
+				<td class="bd_num">830</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092595" class="">
+							서울 가격상승폭 둔화·매물 증가…수도권 내년 1분기까지 4만 호 이상 입주
+						</a>
+					</td>
+					<td class="bd_field">주택토지</td>
+				<td class="bd_date">2026-11-13</td>
+				<td class="bd_inquiry">1353</td>
+			</tr>
+			<tr>
+				<td class="bd_num">829</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092594" class="">
+							ICAO 항공안전평가 앞두고 범정부 총력 대응
+						</a>
+					</td>
+					<td class="bd_field">항공</td>
+				<td class="bd_date">2026-11-13</td>
+				<td class="bd_inquiry">597</td>
+			</tr>
+			<tr>
+				<td class="bd_num">828</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092592" class="">
+							물류기업과 기술기업이 만나는  ‘협업의 장’ 열린다
+						</a>
+					</td>
+					<td class="bd_field">교통물류</td>
+				<td class="bd_date">2026-11-13</td>
+				<td class="bd_inquiry">689</td>
+			</tr>
+			<tr>
+				<td class="bd_num">827</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092593" class="">
+							김용석 대광위원장,고양창릉 광역교통개선대책 추진상황 점검
+						</a>
+					</td>
+					<td class="bd_field">교통물류</td>
+				<td class="bd_date">2026-11-12</td>
+				<td class="bd_inquiry">1019</td>
+			</tr>
+			<tr>
+				<td class="bd_num">826</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092590" class="">
+							조경의 오늘과 미래를 한눈에, 「제1회 대한민국 조경박람회」 13일 개막
+						</a>
+					</td>
+					<td class="bd_field">국토도시</td>
+				<td class="bd_date">2026-11-12</td>
+				<td class="bd_inquiry">1106</td>
+			</tr>
+			<tr>
+				<td class="bd_num">825</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092589" class="">
+							공공재개발 사업수수료 3%→1% 한시 인하
+						</a>
+					</td>
+					<td class="bd_field">주택토지</td>
+				<td class="bd_date">2026-11-12</td>
+				<td class="bd_inquiry">2056</td>
+			</tr>
+			<tr>
+				<td class="bd_num">824</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092588" class="">
+							전세사기피해자등 480건 추가 결정
+						</a>
+					</td>
+					<td class="bd_field">일반</td>
+				<td class="bd_date">2026-11-12</td>
+				<td class="bd_inquiry">1542</td>
+			</tr>
+			<tr>
+				<td class="bd_num">823</td>
+					<td class="bd_title">
+						<a href="dtl.jsp?lcmspage=1&amp;id=95092587" class="">
+							[장관동정] 홍지선 장관, 공공·민간 협력으로  2030 착공목표 차질 없이 추진
+						</a>
+					</td>
+					<td class="bd_field">주택토지</td>
+				<td class="bd_date">2026-11-11</td>
+				<td class="bd_inquiry">2223</td>
+			</tr>
+		</tbody>
+	</table>
+<!-- 페이징 -->
+<div class="bd_pagination">
+	<a href="#" class="direction first">처음으로</a><a href="#" class="direction prev">이전페이지</a><strong>1</strong><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=2">2</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=3">3</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=4">4</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=5">5</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=6">6</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=7">7</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=8">8</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=9">9</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=10">10</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=11" class="direction next">다음페이지</a><a href="./lst.jsp?search_section=&amp;search=&amp;search_gubun=1&amp;search_gubun1=all&amp;srch_usr_titl=Y&amp;srch_usr_ctnt=&amp;psize=10&amp;search_regdate_s=2025-11-14&amp;search_regdate_e=2026-11-14&amp;srch_cate=&amp;srch_dept_nm=&amp;search_kind=&amp;search_gbn=&amp;lst_gbn=T&amp;lcmspage=84" class="direction last">마지막으로</a>
+</div>
+<ul class="bbs_button" id="bbs_button">
+	<li class="w100 tl">&nbsp;</li>
+	<li class="w400 tc">&nbsp;</li>
+	<li class="w100 tr">
+	</li>
+</ul>
+<iframe name="iframenews" class="iframe_news"  title="빈페이지"></iframe>
+<!--게시판 끝-->
+<!-- 공지사항 : 공공누리 -->
+<div class="box_notice property">
+	<ul class="bul_type01 mb0">
+		<li>국토교통부의 최신 보도자료를 제공해드립니다.</li>
+		<li>국토교통부 보도자료 저작물은 "공공누리"의 <a rel="license" href="http://www.kogl.or.kr/info/introduce.do" target="_blank">공공저작물 자유이용허락 표시제도</a>에 따라 누구나 이용할 수 있습니다.</li>
+	</ul>
+</div>
+					</article>
+				</div>
+			</div>
+		</div>
+		<!-- //content -->
+	</div>
+	<!-- //container_wrap -->
+	<!-- footer -->
+ <footer id="krds_footer">
+	<!-- 0. Related Sites Bar (MTC Style with Modal) -->
+	<div class="krds_related_site_wrap">
+	    <div class="krds_inner">
+	        <ul class="org-site">
+	            <li>
+	                <button type="button" class="krds-site-btn krds-modal-open" data-target="layer-site01"
+	                    aria-haspopup="dialog">
+	                    <span>주요사이트 바로가기</span>
+	                </button>
+	            </li>
+	            <li>
+	                <button type="button" class="krds-site-btn krds-modal-open" data-target="layer-site02"
+	                    aria-haspopup="dialog">
+	                    <span>소속기관 바로가기</span>
+	                </button>
+	            </li>
+	            <li>
+	                <button type="button" class="krds-site-btn krds-modal-open" data-target="layer-site03"
+	                    aria-haspopup="dialog">
+	                    <span>산하기관 바로가기</span>
+	                </button>
+	            </li>
+	        </ul>
+	    </div>
+	</div>
+	<!-- Modals -->
+	<!-- Modal 1: Related Sites -->
+	<div id="layer-site01" class="krds-wrap-modal full-modal" role="dialog" aria-modal="true"
+	    aria-labelledby="title-site01">
+	    <div class="modal-header-hidden">
+	        <h2 id="title-site01">주요사이트 바로가기</h2>
+	    </div>
+	    <div class="modal-body site-popup" tabindex="0">
+	        <div class="inner">
+	            <strong class="site-tit">주요사이트 바로가기</strong>
+	            <div class="krds-site-box">
+	                <ul>
+	                    <li><a href="https://data.molit.go.kr" target="_blank" title="데이터통합채널">

@@ -186,10 +186,31 @@ def render(c: dict) -> str:
         L.append("")
 
     gov = c.get("gov_policy", [])
-    L.append(f"## E. 정부 정책뉴스 (korea.kr, {len(gov)}) — 수혜 종목을 골라 [P-번호:종목코드]로 채점, policy 항목 필수")
+    n_press = sum(1 for g in gov if g.get("source") == "ministry_press")
+    L.append(f"## E. 정부 정책뉴스 (정책브리핑 {len(gov) - n_press} · 부처 보도자료 {n_press}) — 수혜 종목을 골라 "
+             "[P-번호:종목코드]로 채점, policy 항목 필수. 근거 표시는 [정책:부처명]")
+    basis_note = {"snapshot": "15:30 이후 게시(시각 미상)", "date": "시각 미상(전날 밤·휴일 게시)", "embargo": "엠바고 시각",
+                  "rss": "RSS 시각", "before": "15:30 전 게시(시각 미상)"}
+    n_intra = sum(1 for g in gov if g.get("intraday"))
+    if n_intra:
+        L.append(f"- ⏱ 장중 게시 {n_intra}건 포함 — 시간대 시작일 07:00~15:30에 게시돼 장중에 이미 반영됐을 수 있다. "
+                 "채점은 같은 기준으로 하되 신규성·선반영을 감안하고, 근거에 '장중 게시'를 적는다.")
     for i, g in enumerate(gov, 1):
         d = g["diffusion"]
-        L.append(f"### [P-{i}] {g['published_at'][5:16]} {g['dept']}: {g['title']}")
+        kind = "보도자료" if g.get("source") == "ministry_press" else "정책브리핑"
+        when = g["published_at"][5:16] + (f"({basis_note[g['time_basis']]})" if g.get("time_basis") in basis_note else "")
+        intra = " ⏱장중 게시" if g.get("intraday") else ""
+        L.append(f"### [P-{i}] {when} [정책:{g['dept']}]{intra} {kind}: {g['title']}")
+        extra = []
+        if g.get("embargo"):
+            extra.append(f"엠바고 {g['embargo']['text']}" + (f" → {g['embargo']['at'][5:16]}" if g["embargo"].get("at") else ""))
+        if g.get("same_as"):
+            extra.append("같은 보도: " + ", ".join(f"{'정책브리핑' if x['source'] == 'korea_policy' else '보도자료'}"
+                                                f"({x['office']}) {x['published_at'][5:16]}" for x in g["same_as"]))
+        if g.get("attachments"):
+            extra.append(f"첨부 {len(g['attachments'])}: " + "; ".join(x["name"] for x in g["attachments"][:3]))
+        if extra:
+            L.append("- " + " · ".join(extra))
         kw = ", ".join(d["keywords"]) or "제목에 테마 키워드 없음"
         L.append(f"- 객관: 확산도 {d['score']}점(제목 키워드 [{kw}]를 제목에 다룬 언론 기사 {d['related_articles']}건·"
                  f"언론사 {d['offices']}, 정책브리핑 포함)")

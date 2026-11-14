@@ -21,7 +21,7 @@
 - 잘못된 값이면 400
 
 ### `GET /api/health`
-(추가 필드) `latest_theme_day`(마지막 15:35 테마 집계일), `latest_theme_outlook`(테마 전망이 있는 마지막 대상 거래일).
+(추가 필드) `latest_theme_day`(마지막 15:35 테마 집계일), `latest_theme_outlook`(테마 전망이 있는 마지막 대상 거래일), `latest_scenario`(마지막 손익 시나리오 날짜, 평일 16:10 생성).
 연결 확인. `{"ok": true, "api_version": 1, "now": "...", "latest_article": "...", "latest_report": "2026-11-13",
 "latest_evening_report": "2026-11-13"}` (저녁 리포트가 아직 없으면 null)
 
@@ -45,7 +45,8 @@
     "final": 4, "final_raw": 3.5,
     "material": "연세대학교 의료원과 3,720억 원 공사 수주(매출 대비 18.43%)",
     "category": "contract", "category_name": "공급계약·수주",
-    "basis": ["공시"],                       // 공시 / 뉴스 / 정책 중 해당하는 것
+    "basis": ["공시"],                       // 공시 / 뉴스 / 정책 중 해당하는 것 (분류용)
+    "basis_labels": ["공시"],                // 표시용: 정책은 부처마다 "정책:산업부", 장중(07:00~15:30) 게시 정책이면 "장중 게시"도 (2026-11-14 추가)
     "caution": "공사 기간 동안 매출 분산 인식",   // 없으면 null
     "factors": {                              // 항목 점수 1~5와 근거 한 줄. 해당 없음은 null
       "scale": {"score": 3, "reason": "..."}, "exclusivity": {...}, "novelty": {...},
@@ -91,7 +92,7 @@
 
 | 인자 | 설명 |
 |---|---|
-| `source` | `all`(기본) / `naver`(네이버 시황·전망) / `policy`(정책브리핑) |
+| `source` | `all`(기본) / `naver`(네이버 시황·전망) / `policy`(정책브리핑) / `ministry`(부처 보도자료 11곳, `office`=부처명) |
 | `from`, `to` | `YYYY-MM-DD` 또는 `YYYY-MM-DD HH:MM`. 아무 조건도 없으면 최근 2일 |
 | `q` | 제목·요약·본문 검색어 |
 | `stock` | 종목코드 6자리 — 종목명이 들어간 기사 |
@@ -173,6 +174,20 @@ signal(buy/sell/neutral, 제목 키워드 규칙), confirmed(확정형 재료), 
                                                                             // 다음 거래일 20:10 이후 채워짐(전에는 null)
 ```
 
+### 리포트 항목의 `after` (이후 주가) — `/api/report/{날짜}` 아침·저녁 공통
+`bullish`·`bearish` 각 항목에 `after`가 붙는다. 종목마다 `/api/stock`을 따로 부를 필요가 없다. 응답 맨 위 `after_d0` = 기준일(D0):
+아침 리포트는 그날, 저녁 종가매매 리포트는 다음 거래일.
+```json
+"after": {"d0": "2026-11-12", "status": "집계 중", "close_basis": "KRX 종가",
+          "open": 10230.0, "high": 10340.0, "low": 9040.0, "close": 9170.0,
+          "gap_pct": 1.59, "oc_pct": -10.36, "excess_pct": -9.56, "ret_1d_pct": -7.43, "ret_3d_pct": null, "ret_5d_pct": null}
+```
+- `status`: `집계 전`(D0 봉이 아직 없음 — 모든 값 null) / `집계 중`(일부 값만, 나머지 null) / `완료`(5일 수익률까지).
+  D0 봉은 그날 20:10 주가 반응 기록 뒤에 생긴다.
+- `gap_pct` 시초가 갭(전일 KRX 종가 대비) · `oc_pct` 시가→종가 · `excess_pct` 시가→종가에서 같은 시장 지수의 시가→종가를 뺀 값 ·
+  `ret_Nd_pct` D+N 종가 / D0 시가 − 1. 모두 퍼센트 단위.
+- `close`는 KRX 종가(다음 거래일 기준가로 확정). 아직이면 통합 종가(NXT 애프터마켓 포함)이고 `close_basis`에 그렇게 적힌다.
+
 ### `GET /api/theme-outlook/{YYYY-MM-DD | latest}[?phase=evening|morning]`
 **예측 대상 거래일** 기준 테마 전망(리포트에 실린 것 그대로) + 그날 15:35 채점 결과. 하루에 두 번 만들어진다:
 - `evening` **1차** — 전 거래일 19:30 저녁 종가매매 리포트에 실림(그날 15:35 집계 + 15:30~19:30 재료). 예: 11-13 저녁 → `date` 11-16
@@ -212,6 +227,52 @@ signal(buy/sell/neutral, 제목 키워드 규칙), confirmed(확정형 재료), 
 - 저녁 1차의 `leaders_yday`는 "오늘(장 마감) 주도 테마", 아침 최종에서는 "어제 주도 테마" — 같은 집계일(`prev_day`)이다.
 - `nxt`가 false = 종목 마스터상 NXT 거래 불가(실제로 거래되는 경우가 있어 "NXT✕?"로 표시 권장). null = 정보 없음.
 - `%` 값은 퍼센트 단위, `rise_ratio`·`top10_ratio`·`leader_ratio`·`components`는 0~1.
+
+### `GET /api/scenario/{YYYY-MM-DD | latest}`
+일일 손익 시나리오(평일 16:10). 그날까지의 장전 리포트 종목(호재·악재·비교 기준 후보)을 1분봉으로 시뮬레이션한 손절·익절 추천.
+`latest` = 마지막 생성일. 없으면 404. 리포트 `reports/scenario/날짜.md`와 같은 내용이다.
+```json
+{"date": "2026-11-20", "n_trades": 380, "n_good": 160, "n_combos": 1134,
+ "sel_days": ["2026-11-12", "2026-11-13"],          // 선정 구간(최근 1주 제외) — 비어 있으면 추천 없이 참고만
+ "week_days": ["2026-11-16", "...", "2026-11-20"],   // 검증 구간(최근 1주)
+ "segments": {
+   "호재 전체": {"entry": "krx_open", "combo": [-4, 6, "pct3"],   // [손절%, 익절%, 방식] 방식: full | pctX | tickN
+                "reference_only": false, "confidence": "보통", "basis_n": 54, "sel_mean": 0.0081,
+                "basis": {"n": 54, "mean": 0.0081, "win": 0.56, "max_loss": -0.047, "pf": 1.4, "amb": 2},
+                "month": null, "use_month": false,
+                "oos": {"n": 31, "mean": 0.0032, "win": 0.52, "max_loss": -0.046, "pf": 1.1, "amb": 0}, "overfit": false,
+                "zone": {"stop": [-3, -5], "take": [5, 8], "cells": 9},
+                "single": {"entry": "nxt_early", "combo": [-2, 9, "full"], "stats": {"n": 20, "mean": 0.015}},
+                "entries": {"nxt_early": {"combo": [...], "score": 0.004, "basis": {...}, "zone": {...}}, "nxt_late": {}, "krx_open": {}},
+                "periods": {"week": {...}, "month": {...}, "all": {...}},
+                "status_counts": {"nxt_early": {"ok": 30, "illiquid": 12, "na": 8}, "krx_open": {"ok": 49, "limit": 1}}},
+   "2점": {}, "3점": {}, "4점↑": {}, "공시": {}, "뉴스": {}, "정책": {}, "악재": {}, "비교 기준": {}},
+ "changes": ["3점: 손절 -5→-4%, 방식 전량 익절→절반 익절+트레일 3%"],
+ "notes": ["4점↑: 최적값이 범위 끝에 걸려 손절 -2~-9% · 익절 +2~+10%로 확장"],
+ "assumptions": {"cost_pct": 0.25, "stop_slippage_pct": 0.2, "nxt_entry_slippage_pct": 0.3,
+                 "krx_entry_slippage_pct": 0.1, "nxt_min_amount": 10000000, "min_n": 30}}
+```
+- 수익률·승률은 소수(0.0081 = +0.81%). `entry`: `nxt_early` NXT 08:00 시가 · `nxt_late` NXT 08:40 시가 · `krx_open` KRX 시가.
+- `reference_only: true`면 선정 구간 표본이 없어 최근 1주 결과를 참고로만 보인 것(추천 아님). `악재`·`비교 기준`은 `호재 전체` 조합을 적용한 참고값.
+- `status_counts`: `ok` 시뮬레이션 · `illiquid` NXT 진입 봉 거래대금 부족(NXT만) · `limit` 시가 상한가(매수 불가) · `na` 봉 없음.
+
+**개별 매매 `trades`** (종목 × 진입 시점마다 한 행, `na`는 제외). 옵션: `?trade_date=YYYY-MM-DD`·`?code=종목코드`로 거르기,
+`?trades=0`이면 빼고(약 16KB), `?bars=1`이면 각 행에 `bars`(진입 봉 ~ 15:30 1분봉 `[hhmm, 시, 고, 저, 종, 거래량]`)를 붙인다 —
+이 `bars`가 붙은 `trades`만으로 손절·익절 시뮬레이션을 그대로 다시 계산할 수 있다(`scenario.trades_from_rows` → `analyze`, 같은 결과).
+```json
+{"date": "2026-11-12", "code": "093370", "name": "후성", "score": 3, "basis": ["공시"], "sentiment": "호재",
+ "group": "호재", "segments": ["호재 전체", "3점", "공시"], "entry": "krx_open", "entry_type": "KRX 09:00", "status": "ok",
+ "entry_price": 10240.23, "prev_close": 10070.0, "open": 10230.0, "high": 10340.0, "low": 9040.0, "close": 9170.0,
+ "high_pct": 1.08, "low_pct": -11.63, "close_pct": -10.36, "entry_amount": 1517677593,
+ "first_hit": "high", "first_hit_reason": null, "bars_n": 380,
+ "exit": {"combo": [-1, 5, "pct3"], "label": "손절 -1% · 익절 +5% · 절반 익절+트레일 3%", "reason": "손절",
+          "ret_pct": -1.45, "ambiguous": false}}
+```
+- 가격은 원 단위 원값. `open`은 진입 봉 시가(슬리피지 전), `entry_price`는 슬리피지를 더한 진입가, `close`는 15:30 KRX 종가.
+  `high`·`low`는 진입 봉부터 15:30까지. `*_pct`는 `open` 대비 %(퍼센트 단위).
+- `first_hit`: 그 구간 최고가와 최저가 중 먼저 나온 쪽(`high`/`low`). 모르면 null이고 `first_hit_reason`에 이유(분봉 없음, 같은 1분봉에서 둘 다 발생).
+- `exit`: `호재 전체` 추천 조합을 이 매매에 적용한 청산(사유 손절/익절/익절+트레일/종가, `ret_pct`는 비용·슬리피지 뺀 %).
+  `status`가 `limit`(시가 상한가, 매수 불가)이면 null. `group`: 호재 / 악재 / 비교 기준.
 
 ### `GET /api/themes/{YYYY-MM-DD | latest}[?limit=30]`
 그날 15:35 테마 집계(묶음 단위, 중앙값 초과 순위)와 그날 아침 예측·채점.

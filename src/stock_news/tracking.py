@@ -213,8 +213,18 @@ def _targets(conn, date: str) -> list[dict]:
 
 
 def track_evening(conn, store: "PriceStore", trading_days: list[str], log=print) -> int:
-    """저녁 종가매매 리포트 종목의 다음 거래일 반응(진입가 = 리포트 시각 NXT 가격 대비 시가·고가·종가)."""
+    """저녁 종가매매 리포트 종목의 다음 거래일 반응(진입가 = 리포트 시각 NXT 가격 대비 시가·고가·종가).
+    리포트 API의 '이후 주가'(1·3·5일 수익률)용으로 다음 거래일부터 5거래일까지 일봉도 채운다."""
     n = 0
+    recent = trading_days[-8:]
+    for r in conn.execute("SELECT DISTINCT date, stock_code FROM evening_scores WHERE date>=?",
+                          (recent[0] if recent else "9999",)).fetchall():
+        later = [d for d in trading_days if d > r["date"]]
+        if later:
+            try:
+                store.ensure_stock(r["stock_code"], later[min(5, len(later) - 1)])
+            except Exception as e:  # noqa: BLE001
+                log(f"  저녁 {r['date']} {r['stock_code']} 일봉 조회 실패: {e}")
     rows = conn.execute("SELECT date, stock_code, entry_price FROM evening_scores WHERE next_close IS NULL "
                         "AND entry_price IS NOT NULL").fetchall()
     for r in rows:
@@ -345,3 +355,41 @@ def track(conn, client: KiwoomClient, dates: list[str] | None = None, log=print)
         conn.commit()
     stats["evening"] = track_evening(conn, store, trading_days, log)
     return stats
+
+
+# ------------------------------------------------------------------ 리포트 API용 '이후 주가' (DB만 읽음)
+def _pct(v):
+    return None if v is None else round(v * 100, 2)
+
+
+def after_prices(conn, code: str, d0: str | None) -> dict:
+    """D0(진입일) 이후 주가: 시초가 갭·시가→종가·지수 대비·1·3·5일 수익률(%)과 시가·고가·저가·종가 원값.
+    값이 아직 없으면 null, status = '집계 전'(D0 봉 없음) / '집계 중'(일부만) / '완료'.
+    D0 봉은 통합 일봉이 완성되는 20:05 이후에 생긴다(track_prices 20:10)."""
+    keys = ("open", "high", "low", "close", "gap_pct", "oc_pct", "excess_pct", "ret_1d_pct", "ret_3d_pct", "ret_5d_pct")
+    out = {"d0": d0, "status": "집계 전", "close_basis": None, **{k: None for k in keys}}
+    if not d0:
+        return out
+    ser = [dict(r) for r in conn.execute("SELECT * FROM price_daily WHERE code=? AND dt>=date(?, '-20 days') "
+                                         "ORDER BY dt", (code, d0))]
+    pos = next((i for i, r in enumerate(ser) if r["dt"] == d0), None)
+    if pos is None or not ser[pos]["open"]:
+        return out
+    d = ser[pos]
+    prev = ser[pos - 1] if pos > 0 else None
+    nxt = ser[pos + 1] if pos + 1 < len(ser) else None
+    krx_prev = d.get("base_price") or (prev or {}).get("close")
+    krx_close = (nxt or {}).get("base_price")
+    close = krx_close or d["close"]
+    mk = conn.execute("SELECT market FROM stocks WHERE code=?", (code,)).fetchone()
+    ix = conn.execute("SELECT open, close FROM index_daily WHERE code=? AND dt=?",
+                      (INDEX["KOSDAQ" if mk and str(mk[0]).startswith("KOSDAQ") else "KOSPI"], d0)).fetchone()
+    oc = close / d["open"] - 1
+    rets = {n: (ser[pos + n]["close"] / d["open"] - 1) if pos + n < len(ser) else None for n in (1, 3, 5)}
+    out.update({"open": d["open"], "high": d["high"], "low": d["low"], "close": close,
+                "close_basis": "KRX 종가" if krx_close else "통합 종가(KRX 종가는 다음 거래일 기준가로 확정)",
+                "gap_pct": _pct(d["open"] / krx_prev - 1) if krx_prev else None, "oc_pct": _pct(oc),
+                "excess_pct": _pct(oc - (ix["close"] / ix["open"] - 1)) if ix and ix["open"] else None,
+                "ret_1d_pct": _pct(rets[1]), "ret_3d_pct": _pct(rets[3]), "ret_5d_pct": _pct(rets[5])})
+    out["status"] = "완료" if (rets[5] is not None and krx_close) else "집계 중"
+    return out

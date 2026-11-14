@@ -16,7 +16,7 @@ from email.message import EmailMessage
 from email.utils import formataddr, formatdate, make_msgid
 
 from .analysis.scoring import WEIGHTS
-from .report import (FACTOR_LABELS, SOURCE_NAMES, basis_tags, collect_status, disclosure_rows, figures_text,
+from .report import (FACTOR_LABELS, SOURCE_NAMES, basis_labels, basis_tags, collect_status, disclosure_rows, figures_text,
                      theme_bundles, _names_line,
                      resolve_sources)
 
@@ -62,7 +62,9 @@ TAG_COLOR = {"공시": ("#e8f1fb", "#0b5cad"), "뉴스": ("#eef6ee", "#2d6a2d"),
 
 def _tags(tags: list[str]) -> str:
     return " ".join(f'<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;'
-                    f'background:{TAG_COLOR[t][0]};color:{TAG_COLOR[t][1]};">{t}</span>' for t in tags)
+                    f'background:{TAG_COLOR.get(t.split(":")[0], ("#fff4e5", "#8a4b00"))[0]};'
+                    f'color:{TAG_COLOR.get(t.split(":")[0], ("#fff4e5", "#8a4b00"))[1]};">{t}</span>'
+                    for t in tags)
 
 
 def _link(name: str, url: str) -> str:
@@ -206,7 +208,7 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
         R.append(_table(["#", "종목", "점수", "재료"], [
             [str(n), f'<b>{e(it["name"])}</b><br><span style="color:{MUTED};font-size:11px;">{e(it["code"])}</span>',
              f'{_badge(it["final"])}<br><span style="color:{MUTED};font-size:11px;">{e(it["final_raw"])}</span>',
-             f'{_tags(basis_tags(conn, it))}<br>{e(it["material"])}'] for n, it in enumerate(good, 1)],
+             f'{_tags(basis_labels(conn, it))}<br>{e(it["material"])}'] for n, it in enumerate(good, 1)],
             ["6%", "22%", "12%", "60%"]))
         weights = " · ".join(f"{FACTOR_LABELS[k]} {int(v * 100)}%" for k, v in WEIGHTS.items())
         R.append(f'<tr><td style="font-size:11px;color:{MUTED};padding-top:6px;">가중치: {e(weights)}</td></tr>')
@@ -266,7 +268,7 @@ def render_html(conn, scored: dict, candidates: dict) -> str:
             f'<tr><td style="padding:12px 0;border-bottom:1px solid {LINE};">'
             f'<div style="font-size:15px;font-weight:700;color:{INK};">{n}. {e(it["name"])} '
             f'<span style="font-weight:400;color:{MUTED};font-size:12px;">{e(it["code"])}</span> {_badge(it["final"])} '
-            f'{_tags(basis_tags(conn, it))}</div>'
+            f'{_tags(basis_labels(conn, it))}</div>'
             f'<div style="font-size:13px;color:{INK};padding:4px 0 6px 0;">{e(it["material"])}</div>'
             f'<table role="presentation" cellpadding="0" cellspacing="0" width="100%">{rows}</table>'
             f'{caution}<div style="font-size:12px;padding-top:6px;line-height:1.6;">{link_html}</div></td></tr>')

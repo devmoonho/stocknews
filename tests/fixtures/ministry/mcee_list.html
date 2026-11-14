@@ -1,0 +1,338 @@
+<!-- 대표, 영문, 열린장관실, tablet -->
+				<form id="listForm" name="listForm" action="/home/web/board/list.do" method="get">
+					<!-- start search_box01-->
+					<div class="search_box01">
+						<input type="hidden" id="menuId" name="menuId" value="10598" /> <input type="hidden" id="boardMasterId" name="boardMasterId" value="939" /> <input type="hidden" id="boardCategoryId" name="boardCategoryId" value="" /> <input type="hidden" id="maxIndexPages" name="maxIndexPages" value="10" />
+						<input type="hidden" id="hideCate" name="condition.hideCate" value="" /> <input type="hidden" id="condition.createId" name="condition.createId" value="" /> <input type="hidden" id="decorator" name="decorator" value="" />  <input type="hidden" id="condition.proxyParam1" name="condition.proxyParam1" value="" /> <input type="hidden" id="condition.proxyParam2" name="condition.proxyParam2" value="" /> <input type="hidden" id="condition.proxyParam3" name="condition.proxyParam3" value="" /> <input type="hidden" name="proxyListPath" value="" /> <input type="hidden" name="proxyReadPath" value="" />
+									<dl class="input_division">
+										<dt>검색부서명</dt>
+										<dd>
+											<span class="clause02"> <input type="hidden" id="deptCd" name="condition.createDeptCode" value="" /> <label for="deptNm"><span>검색부서명</span></label> <input type="text" id="deptNm" name="condition.createDeptName" value="" title="검색부서명" style="ime-mode: active;" />
+											</span> <span class="input_division_btn">
+												<button type="button" class="input_division_btn01" id="btnDeptSearch" onclick="goSearchDept();" title="새창으로 열기">부서찾기</button>
+												<button type="button" class="input_division_btn02" id="btnInitDeptSearch" onclick="initDeptSearch();" title="부서검색초기화">부서검색초기화</button>
+											</span>
+											<span>
+												페이지당 10개
+											</span>
+											<select style="font-size: 15px; height : 30px; margin-left: 5px;" id="maxPageItemsSelect"  title="페이지당 리스트 갯수 선택" onchange="updateMaxPageItems()">
+												<option value="10" selected="selected">10</option>
+												<option value="20" >20</option>
+												<option value="30" >30</option>
+												<option value="40" >40</option>
+												<option value="50" >50</option>
+											</select>
+											<input type="hidden" id="maxPageItems" name="maxPageItems" value="10" />
+											<input type="hidden" id="initialLoad" name="initialLoad" value="" />
+										</dd>
+									</dl>
+									<dl class="input_organi">
+								<dt>검색어</dt>
+								<dd>
+											<div class="select_drop_wrap">
+												<div class="select_drop">
+													<label for="searchKey"><span>검색어-검색항목선택</span></label>
+													<select id="searchKey" name="searchKey" title="검색어-검색항목선택" class="select_option">
+														<option value="titleOrContent">
+															제목+내용
+														</option>
+														<option value="title">
+															제목
+														</option>
+														<option value="content">
+															내용
+														</option>
+													</select>
+												</div>
+											</div>
+									<span class="clause"> <label for="searchValue"><span>검색키워드</span></label> <input id="searchValue" name="searchValue" style="ime-mode:active;" title="검색키워드" type="text" value=""/>
+									</span>
+										<span class="clause ma_l10"> <label for="fromDate" class="hidden">등록일자 검색 시작일 (입력예시:2017-01-01)</label> <input type="text" placeholder="연도-월-일" id="fromDate" name="condition.fromDate" title="등록일자 검색시작일 (입력예시:2017-01-01)" class="datepickerAccessible input_style01" value="" maxlength="10" style="width: 80px !important;" readonly/> <label for="toDate" class="hidden">등록일자 검색 종료일 (입력예시:2017-01-01)</label> <input type="text" placeholder="연도-월-일" id="toDate" name="condition.toDate" title="등록일자 검색종료일 (입력예시:2017-01-01)" class="datepickerAccessible input_style01" value="" maxlength="10" style="width: 80px !important;" readonly/> <input type="image" src="/images/home/sub/btn_boxSearch.png" class="search_btn" alt="검색" />
+										</span>
+								</dd>
+								</dl>
+					</div>
+					<!-- end search_box01-->
+					<!-- start bbs_info-->
+							<div class="bbs_info">
+							<div class="ft_l">
+						<span>총 <i>19008</i> 건</span>
+						<span>현재페이지범위 : 1-10</span>
+					</div>
+						<div class="ft_r">
+							<ul>
+								<li><input type="submit" id="CREATE_DATE" class="create_date_order" name="orderCreateDate" value="등록일자 정렬" title="등록일자 정렬" style="padding:0px 5px; background-color:#DCE8F3;" /></li>
+								<li><input type="submit" id="VIEW_COUNT" class="view_count_order" name="orderViewCount" value="조회순 정렬" title="조회순 정렬" style="padding: 0px 5px; background-color:#DCE8F3;" /></li>
+							</ul>
+							<input type="hidden" id="order" name="order" value="" />
+						</div>
+					</div>
+					<!-- end bbs_info-->
+				</form>
+				<!-- start table_case01-->
+				<div>
+					<table class="table_case01">
+						<caption>보도자료의 순번, 제목, 부서명, 등록자명, 등록일자, 조회수에 대한 목록</caption>
+						<!--보도자료 게시물 목록  -->
+						<colgroup>
+										<col style="width:50px;" />
+										<col />
+										<col style="width:90px;" />
+										<col style="width:80px;" />
+										<col style="width:80px;" />
+										<col style="width:50px;" />
+						</colgroup>
+						<thead>
+							<tr style="text-align : center;">
+									<th scope="col">순번</th>
+									<th scope="col">제목</th>
+									<th scope="col">부서명</th>
+									<th scope="col">등록자명</th>
+									<th scope="col">등록일자</th>
+									<th scope="col">조회수</th>
+							</tr>
+						</thead>
+						<tbody>
+									<tr style="text-align : center;">
+													<td><span>19008</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="제27차 한·불 원자력공동조정위원회 개최" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906890&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;제27차 한·불 원자력공동조정위원회 개최
+																		</a>
+														   &nbsp;
+                                                        <span class="brdIcon"><img src="/images/common/board/default/new_blue.gif" alt="새글" /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	원전환경과
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															박현민
+													</td>
+													<td>2026-11-13</td>
+													<td>902</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19007</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="땅속 깊은 곳까지 더 안전하게… 지하수 조사 표준 마련" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906870&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;땅속 깊은 곳까지 더 안전하게… 지하수 조사 표준 마련
+																		</a>
+														   &nbsp;
+                                                        <span class="brdIcon"><img src="/images/common/board/default/new_blue.gif" alt="새글" /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	토양지하수연구과
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															김연태
+													</td>
+													<td>2026-11-13</td>
+													<td>870</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19006</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="(참고) 「에너지 팀코리아」, 글로벌 에너지 전환과 우리 기업 해외 진출 함께 견인" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906740&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;(참고) 「에너지 팀코리아」, 글로벌 에너지 전환과 우리 기업 해외 진출 함께 견인
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	녹색산업해외진출TF
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															최진호
+													</td>
+													<td>2026-11-12</td>
+													<td>1,277</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19005</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="금융업계와 함께하는 기후행동, 현금처럼 쓰는 포인트 혜택까지" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906730&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;금융업계와 함께하는 기후행동, 현금처럼 쓰는 포인트 혜택까지
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	기후적응과
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															김지용
+													</td>
+													<td>2026-11-12</td>
+													<td>1,212</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19004</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="기후행동에 재미를 더하다… 온라인 숲에서 춤까지, 즐거운 기후행동" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906650&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;기후행동에 재미를 더하다… 온라인 숲에서 춤까지, 즐거운 기후행동
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	디지털소통팀
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															황인환
+													</td>
+													<td>2026-11-12</td>
+													<td>1,032</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19003</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="보고 느끼는 친환경 이동수단의 가능성…기후부, 전기차 전시·체험 행사 개최" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906640&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;보고 느끼는 친환경 이동수단의 가능성…기후부, 전기차 전시·체험 행사 개최
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	탈탄소녹색<br/>수송혁신과		
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															조희목
+													</td>
+													<td>2026-11-12</td>
+													<td>1,145</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19002</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="정지궤도 환경·해양위성(천리안위성 6호)의 청사진 공개, 산학연 참여의 장 열어" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906630&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;정지궤도 환경·해양위성(천리안위성 6호)의 청사진 공개, 산학연 참여의 장 열어
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	국립환경과학원
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															이원진
+													</td>
+													<td>2026-11-12</td>
+													<td>917</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19001</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="유럽연합 탄소국경조정제도(CBAM) 국내 첫 검증기관 인정" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906550&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;유럽연합 탄소국경조정제도(CBAM) 국내 첫 검증기관 인정
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	기후경제과
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															이주희
+													</td>
+													<td>2026-11-12</td>
+													<td>1,474</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>19000</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="(참고) 2035년 전 세계 전기화율 35% 달성 공약,한국 지지 의사 표명" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906540&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;(참고) 2035년 전 세계 전기화율 35% 달성 공약,한국 지지 의사 표명
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	기후에너지<br/>정책과		
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															조아라
+													</td>
+													<td>2026-11-11</td>
+													<td>1,278</td>
+									</tr>
+									<tr style="text-align : center;">
+													<td><span>18999</span></td>
+													<td class="al">
+														<!--
+                                                    -->    
+																		<a title="김성환 기후부 장관, 나주 에너지 특화도시 조성을 위해 현장 방문" href="/home/web/board/read.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?pagerOffset=0&amp;maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;menuId=10598&amp;orgCd=&amp;boardId=1906350&amp;boardMasterId=939&amp;boardCategoryId=&amp;decorator="  class="ellipsis">  &nbsp;김성환 기후부 장관, 나주 에너지 특화도시 조성을 위해 현장 방문
+																		</a>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_image.gif" alt="이 게시물에 첨부된 이미지가 있습니다." /></span>
+															<span class="brdIcon"><img src="/images/common/board/default/icon_file.gif" alt="이 게시물에 첨부된 파일이 있습니다." /></span>
+													</td>
+													<td>
+														<!-- 고정형 부서명 2줄로 미관상 좋게 만들기 -->		
+																	전력산업정책과
+															<!-- //고정형 부서명 2줄로 미관상 좋게 만들기 -->
+													</td>
+												<td>
+															정진숙
+													</td>
+													<td>2026-11-11</td>
+													<td>1,399</td>
+									</tr>
+						</tbody>
+					</table>
+					<!-- start btn_wrap-->
+					<!-- end btn_wrap-->
+<!-- start paging--> 
+		<div class="paging">
+			<!-- ================= 처음페이지로 ================= -->
+			<!-- ================= 처음페이지로(비활성) ================= -->
+				<span><img src="/images/home/sub/paging_prev3.png" alt="처음페이지로 이동(비활성)" /></span>
+			<!-- ================= 이전블럭으로(활성) ================= -->
+			<!-- ================= 이전블럭으로(비활성) ================= -->
+				<span><img src="/images/home/sub/paging_prev2.png" alt="이전 10페이지로 이동(비활성)" /></span>
+			<!-- ================= 이전페이지로(활성) ================= -->
+			<!-- ================= 이전페이지로(비활성) ================= -->
+				<span><img src="/images/home/sub/paging_prev.png" alt="이전페이지로 이동(비활성)" /></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.proxyParam1=&amp;condition.proxyParam2=&amp;condition.proxyParam3=&amp;proxyListPath=&amp;proxyReadPath=&amp;initialLoad=&amp;pagerOffset=0"  class="on" title="현재 1 페이지">1</a></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.proxyParam1=&amp;condition.proxyParam2=&amp;condition.proxyParam3=&amp;proxyListPath=&amp;proxyReadPath=&amp;initialLoad=&amp;pagerOffset=10" title="2페이지로 이동">2</a></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.proxyParam1=&amp;condition.proxyParam2=&amp;condition.proxyParam3=&amp;proxyListPath=&amp;proxyReadPath=&amp;initialLoad=&amp;pagerOffset=20" title="3페이지로 이동">3</a></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.proxyParam1=&amp;condition.proxyParam2=&amp;condition.proxyParam3=&amp;proxyListPath=&amp;proxyReadPath=&amp;initialLoad=&amp;pagerOffset=30" title="4페이지로 이동">4</a></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.proxyParam1=&amp;condition.proxyParam2=&amp;condition.proxyParam3=&amp;proxyListPath=&amp;proxyReadPath=&amp;initialLoad=&amp;pagerOffset=40" title="5페이지로 이동">5</a></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.proxyParam1=&amp;condition.proxyParam2=&amp;condition.proxyParam3=&amp;proxyListPath=&amp;proxyReadPath=&amp;initialLoad=&amp;pagerOffset=50" title="6페이지로 이동">6</a></span>
+				<!-- ================= 페이지번호 ================= -->
+					<span class="page_num"><a href="/home/web/board/list.do;jsessionid=AtBd-KSi4zTSajISr1ZBzyJnprBe3KhaCpemolO7.mehome2?maxPageItems=10&amp;maxIndexPages=10&amp;searchKey=&amp;searchValue=&amp;boardMasterId=939&amp;menuId=10598&amp;boardCategoryId=&amp;condition.hideCate=&amp;condition.createDeptCode=&amp;condition.createDeptName=&amp;condition.fromDate=&amp;condition.toDate=&amp;order=&amp;condition.createId=&amp;decorator=&amp;condition.pro

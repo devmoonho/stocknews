@@ -1,0 +1,415 @@
+t type="hidden" id="searchEtc2" name="searchEtc2" value="" />
+<input type="hidden" id="searchEtc3" name="searchEtc3" value="" />
+<input type="hidden" id="searchEtc4" name="searchEtc4" value="" />
+<input type="hidden" id="searchEtc5" name="searchEtc5" value="" />
+<div class="board-wrap">
+	<div class="board-header">
+		<div class="bod-list-header">
+			<ul class="bod-search">
+				<li>
+					<div class="item-wrap">
+						<div class="label-tit">부서</div>
+						<div class="form-con type-dept">
+							<div class="form-cell f-none">
+								<div class="dept-group">
+									<label for="searchDeptName" class="hidden">부서찾기</label>
+									<input type="text" id="searchDeptName" name="searchDeptName" class="search-int" title="부서를 입력해주세요." placeholder="부서를 입력해주세요." value="" />
+									<div class="btn-cell">
+<!-- 										<button type="button" id="deptSearch" class="bod-search-btn" aria-controls="dept01" aria-haspopup="dialog" onclick="article_searchDept(); return false;">부서찾기</button> -->
+										<button type="button" id="deptSearch" title="부서를 입력해주세요." class="bod-search-btn" aria-controls="dept01" aria-haspopup="dialog" onclick="im_searchDept(); return false;">부서찾기</button>
+									</div>
+								</div>
+							</div>
+						</div>
+						<!-- 부서찾기 modal popup -->
+<!-- 부서찾기 팝업 -->
+<div id="dept01" class="modal-popup" data-popup="dept01" role="dialog" aria-modal="true">
+	<div class="pop-bg" data-popup-close="dept01"></div>
+	<div class="popup">
+		<div class="pop-con">
+			<div class="pop-head">
+				<strong class="tit">부서찾기</strong>
+				<button type="button" class="btn-close" data-popup-close="dept01" onClick="javascript:$('#modalDeptSearch').val('');">닫기</button>
+			</div>
+			<div class="pop-body">
+				<div class="bod-search-box">
+					<label for="modalDeptSearch" class="hidden">검색내용</label>
+					<input type="text" id="modalDeptSearch" class="bod-insearch" onkeydown="searchHandler(event)" title="검색하실 내용을 입력하세요" placeholder="검색하실 부서명을 입력하세요">
+					<div class="btn-cell">
+						<button type="button" onClick="im_searchDept();" class="btn-search" title="부서검색">검색</button>
+					</div>
+				</div>
+				<!-- 부서찾기 -->
+				<div class="dept-list-wrap"></div>
+				<!-- //부서찾기 -->
+			</div>
+		</div>
+	</div>
+</div>
+					</div>
+					<div class="item-wrap">
+						<div class="label-tit">등록일자</div>
+						<div class="form-con type-date">
+							<div class="form-cell date">
+								<div class="date-group">
+									<div class="int-cell">
+										<label for="searchStartDate" class="hidden">등록일자 시작일(YYYY-MM-DD)</label>
+										<input type="text" id="searchStartDate" name="searchStartDate" value="" class="datepicker search-date" title="시작일을 입력하세요. 날짜형식:YYYY-MM-DD" placeholder="YYYY-MM-DD" data-datepicker-start="date01"/>
+									</div>
+									<div class="caption-cell">~</div>
+									<div class="int-cell">
+										<label for="searchEndDate" class="hidden">등록일자 종료일(YYYY-MM-DD)</label>
+										<input type="text" id="searchEndDate" name="searchEndDate" value="" class="datepicker search-date" title="종료일을 입력하세요. 날짜형식:YYYY-MM-DD" placeholder="YYYY-MM-DD" data-datepicker-end="date01"/>
+									</div>
+								</div>
+							</div>
+							<div class="form-cell btns">
+								<div class="form-cell li01">
+									<button type="button" class="bod-search-btn" onclick="setPrvDay(3)" title="등록일자 3일 입력">3일</button>
+								</div>
+								<div class="form-cell li01">
+									<button type="button" class="bod-search-btn" onclick="setPrvDay(7)" title="등록일자 일주일 입력">7일</button>
+								</div>
+								<div class="form-cell li01">
+									<button type="button" class="bod-search-btn" onclick="setPrvDay(31)" title="등록일자 한달 입력">한달</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</li>
+				<li>
+					<div class="label-tit">주제어</div>
+					<div class="form-con type-theme">
+						<div class="form-cell f-none">
+							<label for="searchSelect" class="hidden">검색구분</label>
+							<select id="searchSelect" name="searchSelect" class="selectBox" title="검색 구분을 선택해주세요.">
+								<option value="total" >전체</option>
+								<option value="title" >제목</option>
+								<option value="content" >내용</option>
+								<option value="writer" >작성자</option>
+							</select>
+						</div>
+						<div class="form-cell over">
+							<div class="theme-group">
+								<label for="searchValue" class="hidden">검색내용</label>
+								<input type="text" id="searchValue" name="searchValue" value="" class="bo-search-int" title="검색하실 내용을 입력하세요" placeholder="검색하실 내용을 입력하세요" />
+								<div class="btn-cell">
+									<button type="submit" class="bod-search-btn" onsubmit="fn_selectDocList(); return false;" title="검색하기">검색</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</li>
+			</ul>
+		</div>
+	</div>
+	<div class="board-view">
+		<div class="bod-table-info">
+			<p class="total-tit">총  <span>12982</span> 건</p>
+			<label for="pagecnt" class="hidden">목록표시개수선택</label>
+			<select name="pagecnt" id ="pagecnt" class="page_select" title="목록표시개수선택">
+			</select>
+				<a class="select-btn" onkeypress="keyboard_pagecnt_change(event);" onclick="pagecnt_change(); return false;" title="선택하기" tabindex="0">선택</a>
+					<a class="btn-rss" href="rssFeed.do?bbsSeq=10" target="_blank" title="[새창열림]rss feed 선택"><img src="/images/common/rss.png" alt="rss feed"/></a>
+		</div>
+		<table class="bod-table-list">
+			<caption><span>보도자료 게시글 보기 보도자료의 번호, 제목, 담당부서, 파일, 작성일, 조회수 정보를 제공합니다.</span></caption>
+			<colgroup>
+				<col width="10%">
+				<col width="*">
+				<col width="19%">
+				<col width="5%">
+				<col width="12%">
+				<col width="12%">
+			</colgroup>
+			<thead>
+			<tr>
+				<th class="num" scope="col">번호</th>
+				<th class="tit" scope="col">제목</th>
+				<th class="ts" scope="col">담당부서</th>
+				<th class="t-file" scope="col">파일</th>
+				<th class="t-date" scope="col">작성일</th>
+				<th class="t-view" scope="col">조회수</th>
+			</tr>
+			</thead>
+			<tbody>
+					<tr>
+						<td class="num">12982</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69402')" title="[게시글 바로가기] (동정) 돔류 업계의 현장 목소리 듣는다">
+								(동정) 돔류 업계의 현장 목소리 듣는다
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								수산정책과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69402&amp;fileNum=1"
+											class = "file-link pdf">261113_(동정)_돔류_업계_목소리_듣는다(수산정책과).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.13.</td>
+						<td class="t-view">212</td>
+					</tr>
+					<tr>
+						<td class="num">12981</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69401')" title="[게시글 바로가기] (동정) 황종우 장관, ‘코리아 그랜드 페스티벌’ 계기 전통시장 소비 활성화에 힘 보태">
+								(동정) 황종우 장관, ‘코리아 그랜드 페스티벌’ 계기 전통시장 소...
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								유통정책과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69401&amp;fileNum=1"
+											class = "file-link pdf">261113_(동정)_황종우_장관__'코리아_그랜드_페스티벌'_계기_전통시장_소비_활성화에_힘_보태(유통정책과).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.13.</td>
+						<td class="t-view">189</td>
+					</tr>
+					<tr>
+						<td class="num">12980</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69400')" title="[게시글 바로가기] 경북 포항 호미반도 국가해양생태공원 조성 사업 예비타당성조사 통과">
+								경북 포항 호미반도 국가해양생태공원 조성 사업 예비타당성조사 통과
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								해양생태과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69400&amp;fileNum=1"
+											class = "file-link pdf">261113(즉시 보도 가능) 경북 포항 호미반도 국가해양생태공원 조성 사업 예비타당성조사 통과(해양생태과).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.13.</td>
+						<td class="t-view">235</td>
+					</tr>
+					<tr>
+						<td class="num">12979</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69381')" title="[게시글 바로가기] (동정) 황종우 장관, 포르투갈 농업해양부 장관과 ‘해양수산 협력 양해각서(MOU)’ 서명">
+								(동정) 황종우 장관, 포르투갈 농업해양부 장관과 ‘해양수산 협력 ...
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								국제협력총괄과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69381&amp;fileNum=1"
+											class = "file-link pdf">261112_(동정)_황종우_장관_포르투갈_농업해양부_장관과_‘해양수산_협력_양해각서(mou)’_서명.pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.12.</td>
+						<td class="t-view">373</td>
+					</tr>
+					<tr>
+						<td class="num">12978</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69380')" title="[게시글 바로가기] (동정) 가리비 양식업계의 목소리 듣는다">
+								(동정) 가리비 양식업계의 목소리 듣는다
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								수산정책과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69380&amp;fileNum=1"
+											class = "file-link pdf">261112_(동정)_가리비_업계_목소리_듣는다.pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.12.</td>
+						<td class="t-view">370</td>
+					</tr>
+					<tr>
+						<td class="num">12977</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69379')" title="[게시글 바로가기] (동정) 남재헌 차관, 수산기업 CEO들과 수산업 경쟁력 강화 방안 논의">
+								(동정) 남재헌 차관, 수산기업 CEO들과 수산업 경쟁력 강화 방안...
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								수산정책과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69379&amp;fileNum=1"
+											class = "file-link pdf">261112_(동정)_남재헌_차관__수산기업_ceo들과_수산업_경쟁력_강화방안_논의.pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.12.</td>
+						<td class="t-view">348</td>
+					</tr>
+					<tr>
+						<td class="num">12976</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69366')" title="[게시글 바로가기] 정지궤도 환경·해양 위성인 천리안위성 6호의 청사진 공개한다">
+								정지궤도 환경·해양 위성인 천리안위성 6호의 청사진 공개한다
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								국가해양위성센터
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69366&amp;fileNum=1"
+											class = "file-link pdf">261113(조간) 정지궤도 환경·해양 위성인 천리안위성 6호의 청사진 공개한다(국립해양조사원).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.12.</td>
+						<td class="t-view">344</td>
+					</tr>
+					<tr>
+						<td class="num">12975</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69364')" title="[게시글 바로가기] 인도양 해저지형 4곳에 조선시대 지리학자들의 이름을 붙인다">
+								인도양 해저지형 4곳에 조선시대 지리학자들의 이름을 붙인다
+								<span class="new">
+									<img src="/images/board/new_i.png" alt="새글"/>
+								</span>
+							</a>
+						</td>
+						<td class="ts">
+								해도수로과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69364&amp;fileNum=1"
+											class = "file-link pdf">261113(석간) 인도양 해저지형 4곳에 조선시대 지리학자들의 이름을 붙인다(국립해양조사원).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.12.</td>
+						<td class="t-view">135</td>
+					</tr>
+					<tr>
+						<td class="num">12974</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69354')" title="[게시글 바로가기] 한국 정부대표단, 프랑스가 개최한 'G7+ 마약 밀매 대응 항만 네트워크' 출범 회의 참석">
+								한국 정부대표단, 프랑스가 개최한 'G7+ 마약 밀매 대응 항만 네...
+							</a>
+						</td>
+						<td class="ts">
+								항만안전보안과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69354&amp;fileNum=1"
+											class = "file-link pdf">261110(즉시 보도 가능) 한국 정부대표단, 프랑스가 개최한 'g7+ 마약 밀매 대응 항만 네트워크' 출범 회의 참석(항만안전보안과).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.10.</td>
+						<td class="t-view">641</td>
+					</tr>
+					<tr>
+						<td class="num">12973</td>
+						<td class="tit">
+							<a  class="link-t"  href="#none" onclick="fn_selectDoc('69353')" title="[게시글 바로가기] 해수부, 항만공사 자회사 통합 추진을 위한 노·사 간담회 개최한다">
+								해수부, 항만공사 자회사 통합 추진을 위한 노·사 간담회 개최한다
+							</a>
+						</td>
+						<td class="ts">
+								항만안전보안과
+						</td>
+						<td class="t-file">
+										<a href="/jfile/readDownloadFile.do?fileType=MOF_ARTICLE&amp;fileTypeSeq=69353&amp;fileNum=1"
+											class = "file-link pdf">261112(조간) 해수부, 항만공사 자회사 통합 추진을 위한 노·사 간담회 개최한다(항만물류기획과, 항만안전보안과).pdf
+										</a>
+						</td>
+						<td class="t-date">2026.11.10.</td>
+						<td class="t-view">549</td>
+					</tr>
+			</tbody>
+		</table>
+		<!-- 페이징 디스플레이 -->
+		<div class="pagination">
+			<div class="paging-wrap">
+					<a href="#none" title="처음 페이지로" onclick="fn_goPage(1); return false;" class="btn_start" tabindex="-1" aria-disabled="true" style="pointer-events:none"><span>처음 페이지로</span></a>
+	<a href="#none" title="이전 페이지 이동" onclick="fn_goPage(1 ); return false;" class="btn_prev" tabindex="-1" aria-disabled="true" style="pointer-events:none"><span>이전 페이지 이동</span></a>
+	<a href="#none" class="this" title="현재 페이지">1</a>
+	<a href="#none" title="2페이지" onclick="fn_goPage(2); return false;">2</a>
+	<a href="#none" title="3페이지" onclick="fn_goPage(3); return false;">3</a>
+	<a href="#none" title="4페이지" onclick="fn_goPage(4); return false;">4</a>
+	<a href="#none" title="5페이지" onclick="fn_goPage(5); return false;">5</a>
+	<a href="#none" title="6페이지" onclick="fn_goPage(6); return false;">6</a>
+	<a href="#none" title="7페이지" onclick="fn_goPage(7); return false;">7</a>
+	<a href="#none" title="8페이지" onclick="fn_goPage(8); return false;">8</a>
+	<a href="#none" title="9페이지" onclick="fn_goPage(9); return false;">9</a>
+	<a href="#none" title="10페이지" onclick="fn_goPage(10); return false;">10</a>
+	<a href="#none" title="다음 페이지 이동 " onclick="fn_goPage(2 ); return false;" class="btn_next"><span>다음 페이지 이동</span></a>
+	<a href="#none" title="끝페이지 " onclick="fn_goPage(1299 ); return false;" class="btn_end"><span>끝 페이지로</span></a>
+			</div>
+		</div>
+	</div>
+</div>
+</form>
+							<!-- 부서찾기 modal popup -->
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</main>
+	<footer id="footer">
+	<div class="site-box-wrap">
+		<div class="list-area">
+			<ul class="site-box-list">
+				<li>
+						<div class="site-box">
+							<button type="button" class="btn-site"><span>중앙행정기관 누리집</span></button>
+							<ul class="site-list">
+								<li><a href="http://www.moel.go.kr" target="_blank" title="고용노동부 새창열기"><span>고용노동부</span></a></li>
+									<li><a href="http://www.msit.go.kr" target="_blank" title="과학기술정보통신부 새창열기"><span>과학기술정보통신부</span></a></li>
+									<li><a href="http://www.moe.go.kr" target="_blank" title="교육부 새창열기"><span>교육부</span></a></li>
+									<li><a href="http://www.mnd.go.kr" target="_blank" title="국방부 새창열기"><span>국방부</span></a></li>
+									<li><a href="http://www.molit.go.kr" target="_blank" title="국토교통부 새창열기"><span>국토교통부</span></a></li>
+									<li><a href="http://www.moef.go.kr" target="_blank" title="재정경재부 새창열기"><span>재정경재부</span></a></li>
+									<li><a href="http://www.mafra.go.kr" target="_blank" title="농림축산식품부 새창열기"><span>농림축산식품부</span></a></li>
+									<li><a href="http://www.mcst.go.kr" target="_blank" title="문화체육관광부 새창열기"><span>문화체육관광부</span></a></li>
+									<li><a href="http://www.moj.go.kr" target="_blank" title="법무부 새창열기"><span>법무부</span></a></li>
+									<li><a href="http://www.mohw.go.kr" target="_blank" title="보건복지부 새창열기"><span>보건복지부</span></a></li>
+									<li><a href="http://www.motir.go.kr" target="_blank" title="산업통상부 새창열기"><span>산업통상부</span></a></li>
+									<li><a href="http://www.mogef.go.kr" target="_blank" title="성평등가족부 새창열기"><span>성평등가족부</span></a></li>
+									<li><a href="http://www.mofa.go.kr" target="_blank" title="외교부 새창열기"><span>외교부</span></a></li>
+									<li><a href="http://www.mss.go.kr" target="_blank" title="중소벤처기업부 새창열기"><span>중소벤처기업부</span></a></li>
+									<li><a href="http://www.unikorea.go.kr" target="_blank" title="통일부 새창열기"><span>통일부</span></a></li>
+									<li><a href="http://www.mois.go.kr" target="_blank" title="행정안전부 새창열기"><span>행정안전부</span></a></li>
+									<li><a href="http://www.mcee.go.kr/home/web/main.do" target="_blank" title="기후에너지환경부 새창열기"><span>기후에너지환경부</span></a></li>
+									<li><a href="http://www.mpva.go.kr" target="_blank" title="국가보훈부 새창열기"><span>국가보훈부</span></a></li>
+									<li><a href="http://www.pss.go.kr" target="_blank" title="대통령경호처 새창열기"><span>대통령경호처</span></a></li>
+									<li><a href="http://www.moleg.go.kr" target="_blank" title="법제처 새창열기"><span>법제처</span></a></li>
+									<li><a href="http://www.mfds.go.kr" target="_blank" title="식품의약품안전처 새창열기"><span>식품의약품안전처</span></a></li>
+									<li><a href="http://www.mpm.go.kr" target="_blank" title="인사혁신처 새창열기"><span>인사혁신처</span></a></li>
+									<li><a href="http://www.police.go.kr" target="_blank" title="경찰청 새창열기"><span>경찰청</span></a></li>
+									<li><a href="http://www.customs.go.kr" target="_blank" title="관세청 새창열기"><span>관세청</span></a></li>
+									<li><a href="http://www.nts.go.kr" target="_blank" title="국세청 새창열기"><span>국세청</span></a></li>
+									<li><a href="http://www.kma.go.kr" target="_blank" title="기상청 새창열기"><span>기상청</span></a></li>
+									<li><a href="http://www.rda.go.kr" target="_blank" title="농촌진흥청 새창열기"><span>농촌진흥청</span></a></li>
+									<li><a href="http://www.spo.go.kr" target="_blank" title="대검찰청 새창열기"><span>대검찰청</span></a></li>
+									<li><a href="http://www.khs.go.kr" target="_blank" title="국가유산청 새창열기"><span>국가유산청</span></a></li>
+									<li><a href="http://www.dapa.go.kr" target="_blank" title="방위사업청 새창열기"><span>방위사업청</span></a></li>
+									<li><a href="http://www.mma.go.kr" target="_blank" title="병무청 새창열기"><span>병무청</span></a></li>
+									<li><a href="http://www.forest.go.kr" target="_blank" title="산림청 새창열기"><span>산림청</span></a></li>
+									<li><a href="http://www.saemangeum.go.kr" target="_blank" title="새만금개발청 새창열기"><span>새만금개발청</span></a></li>
+									<li><a href="http://www.nfa.go.kr" target="_blank" title="소방청 새창열기"><span>소방청</span></a></li>
+									<li><a href="http://www.pps.go.kr" target="_blank" title="조달청 새창열기"><span>조달청</span></a></li>
+									<li><a href="http://www.kostat.go.kr" target="_blank" title="국가데이터처 새창열기"><span>국가데이터처</span></a></li>
+									<li><a href="http://www.kipo.go.kr" target="_bla

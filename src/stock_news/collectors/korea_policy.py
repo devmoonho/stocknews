@@ -110,7 +110,10 @@ def collect(conn, window: Window, fetch_bodies: bool = True) -> dict:
 
     # 2) 본문 + 발행 시각 → 시간대로 거르기 (목록에는 날짜만 있어서 시작일 기사는 본문을 봐야 판단 가능)
     collected_at = f"{now_kst():%Y-%m-%d %H:%M:%S}"
-    in_window, inserted, no_time = 0, 0, 0
+    in_window, inserted, no_time, intraday = 0, 0, 0, 0
+    # 장중 게시(시작일 07:00~15:30) 정책도 저장 — 후보에 '장중 게시'로 남긴다(공시와 달리 제외하지 않음)
+    from .ministry_press import intraday_start
+    keep_from = intraday_start(window)
     for nid, it in cands.items():
         exists = conn.execute("SELECT published_at, body FROM articles WHERE office_id='korea.kr' AND article_id=?",
                               (nid,)).fetchone()
@@ -134,9 +137,12 @@ def collect(conn, window: Window, fetch_bodies: bool = True) -> dict:
             warn.add(f"{SOURCE}: {nid} 목록 날짜 {it['date']} ≠ 발행 시각 {published} — 시각 형식 변경 의심")
         if published > now_kst() + dt.timedelta(minutes=30):
             warn.add(f"{SOURCE}: {nid} 발행 시각이 미래({published}) — 시간대(KST/UTC) 표기 변경 의심")
-        if not window.contains(published):
+        if not (keep_from <= published <= window.end):
             continue
-        in_window += 1
+        if window.contains(published):
+            in_window += 1
+        else:
+            intraday += 1
         summary = " / ".join(x for x in (it["stitle"] or view["subtitle"].replace("\n", " / "), it["lead"][:300]) if x)
         row = {"source": SOURCE, "office_id": "korea.kr", "article_id": nid, "office_name": it["dept"],
                "title": it["title"], "summary": summary, "published_at": f"{published:%Y-%m-%d %H:%M:%S}",
@@ -145,7 +151,7 @@ def collect(conn, window: Window, fetch_bodies: bool = True) -> dict:
         if fetch_bodies and view["body"]:
             db.set_article_body(conn, "korea.kr", nid, view["body"], collected_at)
     conn.commit()
-    print(f"  시간대 안 {in_window}건 (신규 {inserted}건)")
+    print(f"  시간대 안 {in_window}건 (신규 {inserted}건) · 장중 게시 {intraday}건")
     if no_time > max(2, len(cands) * 0.3):
         warn.add(f"{SOURCE}: 발행 시각(meta) 없는 기사 {no_time}건 — 본문 페이지 구조 변경 의심")
 

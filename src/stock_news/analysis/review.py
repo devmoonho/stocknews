@@ -45,14 +45,32 @@ def _rows(conn, start: str | None = None, end: str | None = None) -> list[dict]:
     if end:
         q += " AND p.date <= ?"
         args.append(end)
+    q = q.replace("s.weights_version FROM", "s.weights_version, s.sources AS score_sources FROM")
     out = []
     for r in conn.execute(q + " ORDER BY p.date", args):
         d = dict(r)
         d["factors"] = json.loads(d["factors"]) if d.get("factors") else {}
+        d["ministries"] = _ministries(conn, d)
+        d["policy_session"] = _session(conn, d)
         if d.get("open_limit"):            # 시가가 상한가 → 시가에 살 수 없음: 시가 기준 목표에서 제외(0으로 세면 강한 재료를 감점)
             d["oc_excess_open_limit"], d["oc_excess"], d["oc_pct"] = d.get("oc_excess"), None, None
         out.append(d)
     return out
+
+
+def _ministries(conn, d: dict) -> list[str]:
+    """정책 근거 종목의 부처명(정책브리핑 표기는 수집 부처 표시명으로 통일). 정책 근거가 아니면 []."""
+    if "정책" not in (d.get("basis") or ""):
+        return []
+    from ..report import policy_ministries
+    return policy_ministries(conn, {"sources": json.loads(d.get("score_sources") or "[]"), "id": "P-"})
+
+
+def _session(conn, d: dict) -> str | None:
+    if "정책" not in (d.get("basis") or ""):
+        return None
+    from ..report import policy_session
+    return policy_session(conn, {"sources": json.loads(d.get("score_sources") or "[]"), "id": "P-"})
 
 
 def summarize(rows: list[dict], target: str) -> dict:
@@ -71,6 +89,12 @@ def summarize(rows: list[dict], target: str) -> dict:
         "all_good": stat(good),
         "by_score": {s: stat([r for r in good if r["final"] == s]) for s in (5, 4, 3, 2, 1)},
         "by_basis": {b: stat([r for r in good if b in (r.get("basis") or "")]) for b in ("공시", "뉴스", "정책")},
+        # 정책 게시 구간별: 장 마감 후(15:30~다음 07:00) / 장중(07:00~15:30 — 이미 반영됐을 수 있음)
+        "by_policy_session": {k: stat([r for r in good if r.get("policy_session") == k]) for k in ("장 마감 후", "장중")},
+        # 부처별(정책 근거 호재): 한 종목이 여러 부처 정책에 걸리면 각 부처에 한 번씩 센다
+        "by_ministry": dict(sorted(((m, stat([r for r in good if m in r.get("ministries", [])]))
+                                    for m in {m for r in good for m in r.get("ministries", [])}),
+                                   key=lambda kv: -kv[1]["n"])),
         "bad": stat([r for r in rows if r["grp"] == "scored" and r["sentiment"] == "악재"]),
         "control": stat([r for r in rows if r["grp"] == "control"]),
     }
@@ -236,6 +260,22 @@ def render(week_start: str, week_end: str, week: dict, cum: dict, corr: dict, ta
         table("점수별 (호재)", {**{f"{k}점": v for k, v in data["by_score"].items()}, "호재 전체": data["all_good"],
                              "악재": data["bad"], "비교 기준(채점 안 한 후보)": data["control"]}, lambda k: k)
         table("근거별 (호재)", data["by_basis"], lambda k: f"[{k}]")
+        table("정책 게시 구간별 (호재) — 장 마감 후 게시 vs 장중 게시(07:00~15:30)", data.get("by_policy_session", {}),
+              lambda k: f"{k} 게시")
+        L.append("### 부처별 (정책 근거 호재)")
+        L.append("")
+        if data.get("by_ministry"):
+            L.append("| 부처 | 건수 | 기대수익(평균) | 승률 | 중앙값 | 5일 |")
+            L.append("|---|---|---|---|---|---|")
+            for m, st in data["by_ministry"].items():
+                win = "-" if st["win"] is None else f"{st['win'] * 100:.0f}%"
+                warn = " ⚠️ 표본 부족" if st["n"] < 10 else ""
+                L.append(f"| [정책:{m}]{warn} | {st['n']} | {pct(st['mean'])} | {win} | {pct(st['median'])} | {pct(st['r5'])} |")
+            L.append("")
+            L.append(f"<sub>기대수익·승률 = 목표 지표({target}) 기준. 한 종목이 여러 부처 정책에 걸리면 부처마다 센다.</sub>")
+        else:
+            L.append("정책 근거 호재 없음")
+        L.append("")
 
     L.append("## 이번 주 잘 맞은 / 안 맞은 종목")
     L.append("")

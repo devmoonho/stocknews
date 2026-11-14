@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import html
 
-from .report import basis_tags, resolve_sources
+from .report import basis_labels, basis_tags, resolve_sources
 
 LIMIT = 4000
 
@@ -35,7 +35,7 @@ def render(conn, scored: dict, candidates: dict, top_n: int = 7, warnings: list[
         for n, it in enumerate(good[:top_n], 1):
             links = resolve_sources(conn, it.get("sources", []))
             link = f' <a href="{e(links[0][1])}">원문</a>' if links else ""
-            tags = "".join(f"[{t}]" for t in basis_tags(conn, it))
+            tags = "".join(f"[{t}]" for t in basis_labels(conn, it))
             q = it.get("evening") or {}
             quote = ""
             if evening and q.get("after_hours_pct") is not None:

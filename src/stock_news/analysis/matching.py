@@ -81,6 +81,8 @@ class StockMatcher:
         hits = []
         for m in self.pattern.finditer(text):
             term, s, e = m.group(0), m.start(), m.end()
+            if not term:                     # 사전이 비면(빈 DB) 정규식이 빈 문자열에 맞는다
+                continue
             if s > 0 and _HANGUL_ALNUM.match(text[s - 1]):
                 continue
             nxt = text[e] if e < len(text) else ""

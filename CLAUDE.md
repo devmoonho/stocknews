@@ -17,6 +17,10 @@
 2. **수집** — `python3 scripts/collect.py`
    - 네이버 뉴스 포커스 '시황·전망'(sid=401) 목록+본문
    - 정책브리핑(korea.kr) 정책뉴스: 목록을 페이지로 넘기며 날짜 범위 기사 → 본문의 발행 시각으로 시간대 필터
+   - 부처 보도자료 11곳(산업부·과기정통부·국토부·방위사업청·식약처·보건복지부·해양수산부·기후에너지환경부·원자력안전위원회·
+     기획재정부·금융위원회, `collectors/ministry_press.py` 부처별 파서): 부처명·제목·게시 시각·원문 URL·본문·첨부 링크·엠바고
+     → `articles`(source='ministry_press') + `press_meta`. 정책브리핑과 같은 보도는 제목·본문 유사도로 묶고(`policy_dups`)
+     더 먼저 게시된 시각을 남긴다. 파싱 실패·목록 0건·10일 넘게 새 글 없음은 부처별 경고. 점검: `collect.py --probe 3`
    - DART 공시(목록·접수 시각·주요 공시 본문) → 모두 SQLite
    - 종료 코드 2 = 경고 있음. **경고는 리포트 상단에 그대로 옮긴다.** 0건·형식 변경 경고면 사용자에게 먼저 알린다.
 3. **매칭** — `python3 scripts/match.py`
@@ -57,10 +61,21 @@
 - 근사 재구성: `scripts/backfill_trade_value.py`(1회) → `theme_daily.py --rebuild-from 날짜`(통합 일봉 기반 approx=1)
 - 2차(원인·지속성·이벤트 달력)·3차(키움 미국 TR usa10101/10102 — URI 확인 필요)는 아직
 
+## 일일 손익 시나리오 (평일 16:10, 객관 시뮬레이션 — Claude 채점 아님)
+- `scripts/scenario_daily.py`: 장전 리포트 종목(호재·악재·비교 기준 후보)을 1분봉(`minute_bars`, KRX 09:00~15:30 · NXT 08:00~08:50)으로
+  손절 −2~−7% × 익절 +2~+10% × 방식 7개(전량 / 절반 익절+트레일 2·3·5% / 5·10·15호가) × 진입 3개(NXT 08:00·08:40 시가, KRX 시가) 그리드 계산
+  → `reports/scenario/날짜.md` + 메일·텔레그램, `data/work/날짜/scenario.json`, DB `scenario_recs`, API `/api/scenario`
+- 추천은 최근 1주를 뺀 구간(1개월·누적)에서 이웃 칸 평균(안정 점수)으로 고르고, 최근 1주로 검증(과적합 경고). 범위 끝이면 분류별로 자동 확장.
+- 가정: 왕복 비용 0.25% + 손절·트레일 슬리피지 0.2%, 진입 슬리피지 NXT 0.3%·KRX 0.1%, 한 봉 동시 도달은 손절 우선, 미체결은 KRX 종가.
+  NXT 진입만 유동성 판정(진입 봉 거래대금 1천만 원 미만 → 추천 근거 제외). KRX 종가는 15:35 스냅샷(approx=0) → 다음날 기준가 → 15:30 봉 순.
+- 설정 `config/scenario.json` — 사람이 결과를 보고만 바꾼다. 1분봉은 키움 연속조회로 약 50거래일 전까지만 받을 수 있다.
+
 ## 자동 실행 (미니PC cron)
 - 평일 07:00 `scripts/morning_auto.py` — 1~8단계 전체(채점은 `claude -p`). 실패 시 텔레그램 알림. 로그 `data/logs/`
 - 평일 19:10 `scripts/evening_auto.py --prefetch`, 19:30 `scripts/evening_auto.py` — 저녁 종가매매 리포트
+- 평일 15:30 `scripts/collect.py --snapshot` — 부처 보도자료 목록 스냅샷(날짜만 있는 부처의 '15:30 이후 게시' 판정 기준)
 - 평일 15:35·15:50 `scripts/theme_daily.py` — 테마 집계·예측 채점 (위 "테마 전망")
+- 평일 16:10 `scripts/scenario_daily.py` — 일일 손익 시나리오 (위 "일일 손익 시나리오")
 - 평일 20:10 `scripts/track_prices.py` — 채점 종목·비교 기준 종목의 주가 반응 기록(`price_reactions`),
   장중 상한가 도달·해제·재도달(`intraday_patterns`, 1분봉)
 - 토요일 08:00 `scripts/weekly_review.py` — 점수별·근거별 실제 반응 집계, **재료 유형·근거별 영향 지속성(D0~D+10 경로, 정점·반감일)**,
@@ -78,7 +93,8 @@
 - 테마 신호(다이제스트 D)는 구성 종목 중 기사 내용과 편입 사유가 직접 맞는 종목만 고른다(테마 전체를 넣지 않는다).
   id는 `T-번호:종목코드`.
 - 정부 정책뉴스(다이제스트 E)는 **하나씩 모두 읽고** 산업·예산과 직결되는 정책만 수혜 종목을 고른다.
-  id는 `P-번호:종목코드`, `policy` 점수 필수. 정책 본문은 DB `articles`(source='korea_policy')에 있다.
+  id는 `P-번호:종목코드`, `policy` 점수 필수. 정책 본문은 DB `articles`(source='korea_policy' 또는 'ministry_press')에 있다.
+  근거에는 출처를 `[정책:부처명]`으로 적는다. 주간 리뷰는 '부처별'(건수·기대수익·승률)로도 집계한다.
   종목을 고르지 않은 정책도 리포트에 "검토한 정책" 한 줄로 남길 수 있게 scores.json의 `reviewed_policies`에 적는다.
 - **채점표 v2(2026-11-13)**: 항목 7개. `quality`(재료의 질)는 contract·mna·buyback에 필수 — 다이제스트 A의
   발주처 유형·인수자 재무·조달방법·보호예수·신탁/직접·소각 수치를 근거로. `preprice`(선반영)는 **쓰지 않는다**(score.py가 계산).
@@ -98,7 +114,8 @@
 ## 데이터 위치
 - `data/stock_news.db` — articles, disclosures, stocks, themes, theme_stocks, scores, collect_runs,
   price_daily, index_daily, price_reactions, price_paths, intraday_patterns, followups, weight_history,
-  theme_groups, market_daily, theme_daily, theme_members_daily, theme_forecasts, theme_forecast_results, theme_runs
+  theme_groups, market_daily, theme_daily, theme_members_daily, theme_forecasts, theme_forecast_results, theme_runs, minute_bars, scenario_recs, intraday_disclosures,
+  press_meta, press_seen, press_snapshots, policy_dups(부처 보도자료·중복 묶음)
   - 호재 여부와 상관없이 수집한 것은 전부 저장(백테스트용). 지우지 않는다.
 - `data/work/YYYY-MM-DD/` — 그날의 덤프·후보·채점 파일
 - `reports/YYYY-MM-DD.md` — 최종 리포트
@@ -114,8 +131,22 @@
 ## 알려진 특성
 - 네이버 포커스 API: 요청 날짜 기사가 끝나면 전날 1페이지를 반복 → 날짜별로 요청하고 응답 date가 바뀌면 중단(구현됨).
 - DART list.json은 시각이 없음 → 오늘의공시 페이지(dsac001)에서 시각을 붙인다. 지분·펀드 공시 일부는 시각 없음(정상).
+- DART 접수는 07:30부터 → 07:30 전 수집에서 당일 0건은 정상(경고 안 함). 장중 공시(07:30~15:30)는 아침·저녁 수집 시간대 밖이라
+  리포트 재료가 아니다(의도된 설계: 장중 주가에 바로 반영). 다음 날 반응 비교용으로 `intraday_disclosures`에 따로 저장한다.
+- 주요 공시 본문 조회가 실패하면 비워 두고 다음 수집 때 재시도, 3번 실패하면 본문 없음('')으로 확정(`body_attempts`).
 - 키움 키는 현재 **모의투자** 키(KIWOOM_MOCK=1). 종목·테마 조회는 모의 서버에서도 동작.
 - korea.kr 목록은 날짜만, 본문 meta `article:published_time`에 시각이 있다('Z'가 붙어 있지만 KST). robots.txt 허용.
+- 부처 보도자료 게시 시각 출처(`press_meta.time_source`) 우선순위: **RSS**(국토부·식약처·복지부·해수부·기후부 — 시·분·초) →
+  **page**(누리집 표시: 원안위 목록 JSON, 국토부·복지부 상세) → **snapshot**(평일 15:30 목록 스냅샷에 없던 글 = 15:30 이후) →
+  embargo/date. 산업부·과기정통부·기재부 RSS는 날짜만, 금융위 RSS 주소는 403/503, 방위사업청은 RSS 없음(2026-11-14 확인).
+  국토부는 RSS 시각(첨부 업로드 직후)과 상세 '등록일'이 다를 수 있다 — RSS 우선.
+  스냅샷이 없는 날의 시작일 글은 엠바고 시각이 15:30 이후일 때만 넣고 나머지는 경고와 함께 제외.
+  스냅샷 확인: `python3 -c "import sys;sys.path.insert(0,'src');from stock_news import db;print(db.connect().execute('SELECT * FROM press_snapshots ORDER BY snap_date DESC LIMIT 3').fetchall())"`
+- **정책은 장중 게시도 후보에 남긴다**(공시는 장중이면 제외 — 그대로). 시작일 07:00~15:30에 게시된 정책브리핑·부처 보도자료는
+  다이제스트 E 뒤쪽에 '⏱장중 게시'로, 리포트 근거에 `장중 게시` 태그로 표시. 주간 리뷰는 정책을 '장 마감 후 게시'/'장중 게시'로 나눠 집계.
+  국토부 본문은 문서 뷰어(JS)라 못 읽음 → 묶인 정책브리핑 기사 본문으로 보강. 과기정통부 본문은 첨부 .md.
+  복지부 robots.txt는 보도자료 게시판(mid=a10503010100&bid=0027)만 허용 — 다른 게시판을 요청하지 않는다.
+  근거 표시는 `[정책:부처명]`(정책브리핑 부처 표기는 `ministry_press.ALIASES`로 통일 — 재정경제부→기획재정부, 산업통상부→산업부).
 - 네이버 사이트 robots.txt는 일반 봇을 막는다 — 뉴스 목록은 하루 2회(아침 07:00, 저녁 19:10·19:30), 기사 본문은 기사당 1회만,
   테마(약 270회 요청)는 주 1회
   (저녁에 받은 기사는 아침에 다시 받지 않음), 요청 간격 유지. 이보다 빈도를 늘리지 않는다(2026-11-13 사용자 결정).

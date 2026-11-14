@@ -1,0 +1,21 @@
+{
+ "_note": "일일 손익 시나리오(scripts/scenario_daily.py). 값은 사람이 결과를 보고만 바꾼다. 퍼센트 단위는 %.",
+ "entry_modes": ["nxt_early", "nxt_late", "krx_open"],
+ "nxt_early_time": "0800",
+ "nxt_late_time": "0840",
+ "nxt_entry_slippage_pct": 0.3,
+ "krx_entry_slippage_pct": 0.1,
+ "nxt_min_amount": 10000000,
+ "stop": [-2, -3, -4, -5, -6, -7],
+ "take": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+ "trail_pct": [2, 3, 5],
+ "trail_ticks": [5, 10, 15],
+ "expand_limit": {"stop": -15, "take": 30, "stop_inner": -1, "take_inner": 1},
+ "cost_pct": 0.25,
+ "stop_slippage_pct": 0.2,
+ "oos_drop_warn": 1.0,
+ "min_n": 30,
+ "conf": {"high": 100, "mid": 30},
+ "stable_tol": 0.5,
+ "periods": {"week": 5, "month": 21}
+}

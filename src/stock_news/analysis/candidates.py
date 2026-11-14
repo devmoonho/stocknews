@@ -15,9 +15,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
 from collections import defaultdict
 
 from .. import prices
+from ..collectors.ministry_press import GOV_SOURCES, intraday_start, ministry_name
 from ..timewindow import Window, is_trading_day, load_holidays
 from . import followup, leader as ldr
 from .disclosure_parse import _by_mcap, is_third_party, parse as parse_disclosure, scale_basis, scale_score
@@ -63,9 +65,32 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
     pol = policy_terms()
 
     # ---------------------------------------------------------------- 기사
+    # 같은 보도자료로 묶여 빠진 글(policy_dups)은 제외 — 대표 글 하나만 남는다(정책브리핑 ↔ 부처 원문, 부처 합동 보도)
+    # 정책(정책브리핑·부처 보도자료)은 시작일 장중(07:00~15:30)에 게시됐어도 후보에 남긴다 — '장중 게시' 표시.
+    # 공시·일반 기사는 지금처럼 시간대 안만. (15:30 스냅샷에 이미 있던 날짜만 아는 글 = time_basis 'before'도 장중)
+    intra_s = f"{intraday_start(window):%Y-%m-%d %H:%M:%S}"
+    gov_q = ",".join("?" * len(GOV_SOURCES))
     articles = [dict(r) for r in conn.execute(
-        "SELECT id, source, office_name, title, summary, body, published_at, url FROM articles "
-        "WHERE published_at BETWEEN ? AND ? ORDER BY published_at", (s, e))]
+        "SELECT a.id, a.source, a.office_name, a.title, a.summary, a.body, a.published_at, a.url, "
+        "       p.embargo_at, p.embargo_text, p.attachments, p.merged_from, p.time_basis, p.time_source, "
+        "       p.dept AS press_dept "
+        "FROM articles a LEFT JOIN press_meta p ON p.article_id=a.id "
+        "WHERE a.id NOT IN (SELECT article_id FROM policy_dups) AND ("
+        "  a.published_at BETWEEN ? AND ? "
+        f"  OR (a.source IN ({gov_q}) AND ((a.published_at >= ? AND a.published_at < ?) "
+        "      OR (p.time_basis='before' AND p.list_date=?)))) "
+        "ORDER BY a.published_at", (s, e, *GOV_SOURCES, intra_s, s, f"{window.start:%Y-%m-%d}"))]
+    for a in articles:
+        a["intraday"] = not (s <= a["published_at"] <= e)
+    for a in articles:          # 본문이 첨부에만 있는 부처 원문은 묶인 정책브리핑 기사 본문으로 보강
+        merged = json.loads(a.get("merged_from") or "[]")
+        a["_merged"] = merged
+        if a["source"] == "ministry_press" and len(a["body"] or "") < 200 and merged:
+            for m in merged:
+                r = conn.execute("SELECT body, summary FROM articles WHERE id=?", (m["id"],)).fetchone()
+                if r and len(r["body"] or "") > len(a["body"] or ""):
+                    a["body"] = r["body"]
+                    a["summary"] = a["summary"] or r["summary"]
     per_stock: dict[str, dict] = defaultdict(lambda: {"articles": [], "disclosures": []})
     theme_hits: dict[str, dict] = defaultdict(lambda: {"articles": {}, "keywords": set()})
     policy_articles = []
@@ -88,7 +113,7 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
                 "id": a["id"], "title": title, "office": a["office_name"], "published_at": a["published_at"],
                 "url": a["url"], "in_title": pos < len(title), "matched": term,
                 "count_in_text": hit_count[code], "snippet": snippet(full, pos)})
-        is_gov = a["source"] == "korea_policy"
+        is_gov = a["source"] in GOV_SOURCES
         art_themes: dict[str, str] = {}
         head_len = len(title) + 1
         gov_head = f"{title}\n{a['summary'] or ''}" if is_gov else ""
@@ -104,8 +129,17 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
             art_themes.setdefault(h.key, h.term)
         if is_gov:
             # 정부 정책뉴스: 키워드와 상관없이 전부 정책 재료 후보. 걸린 테마·종목을 같이 보여준다.
+            atts = json.loads(a.get("attachments") or "[]")
             gov_articles.append({
-                "id": a["id"], "title": title, "dept": a["office_name"], "published_at": a["published_at"],
+                "id": a["id"], "title": title, "dept": ministry_name(a["office_name"]), "published_at": a["published_at"],
+                "source": a["source"], "office_raw": a["office_name"], "dept_detail": a.get("press_dept") or "",
+                "time_basis": a.get("time_basis") or ("page" if a["source"] == "korea_policy" else None),
+                "time_source": a.get("time_source") or ("page" if a["source"] == "korea_policy" else None),
+                "intraday": a["intraday"],        # 장중 게시(07:00~15:30) — 후보에 남기되 표시
+                "embargo": {"text": a.get("embargo_text"), "at": a.get("embargo_at")} if a.get("embargo_text") else None,
+                "attachments": atts[:6],
+                "same_as": [{"source": m["source"], "office": ministry_name(m["office"]), "published_at": m["published_at"]}
+                            for m in a["_merged"]],
                 "url": a["url"], "summary": (a["summary"] or "")[:400], "_theme_keys": list(art_themes),
                 "themes": sorted({theme_name(k) for k in art_themes if theme_name(k)}),
                 # 확산도 키워드: 제목 + 요약 첫 문단(부제)에 나온 테마 키워드
@@ -119,8 +153,9 @@ def build(conn, window: Window, write_followups: bool = False) -> dict:
             policy_articles.append({"id": a["id"], "title": title, "office": a["office_name"],
                                     "published_at": a["published_at"], "url": a["url"], "policy_terms": hit_pol[:6]})
 
+    gov_articles.sort(key=lambda g: g["intraday"])      # 장 마감 후 게시 먼저, 장중 게시는 뒤에(P-번호 순서)
     # 정부 정책뉴스의 확산도: 정책뉴스 제목에 나온 테마 키워드를 '제목에' 다룬 언론 기사 수 (+ 정책브리핑 1)
-    news = [a for a in articles if a["source"] != "korea_policy"]
+    news = [a for a in articles if a["source"] not in GOV_SOURCES]
     for g in gov_articles:
         # 'AI'·'5G'처럼 짧은 영문 약어는 시황 기사 제목에도 흔해 확산도를 부풀린다 → 제외
         terms = [t for t in g.pop("_title_terms") if not (t.isascii() and len(t) <= 2)]

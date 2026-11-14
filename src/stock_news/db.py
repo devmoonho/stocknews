@@ -267,12 +267,63 @@ CREATE TABLE IF NOT EXISTS theme_runs (          -- 15:35/15:50 집계 실행 �
     dt TEXT NOT NULL, started_at TEXT, finished_at TEXT, ok INTEGER, note TEXT
 );
 
+CREATE TABLE IF NOT EXISTS intraday_disclosures (  -- 장중 공시(아침·저녁 수집 시간대 밖, 15:30 전) — 다음 날 주가 반응 비교용
+    rcept_no TEXT PRIMARY KEY, rcept_dt TEXT NOT NULL, rcept_time TEXT, received_at TEXT,
+    corp_name TEXT, corp_code TEXT, stock_code TEXT, corp_cls TEXT, report_nm TEXT NOT NULL, flr_nm TEXT,
+    signal TEXT, confirmed INTEGER, url TEXT, collected_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_intraday_disc_dt ON intraday_disclosures(rcept_dt, stock_code);
+CREATE TABLE IF NOT EXISTS minute_bars (           -- 손익 시나리오용 1분봉 (KRX 09:00~15:30 · NXT 08:00~08:50)
+    date TEXT NOT NULL, code TEXT NOT NULL, venue TEXT NOT NULL,   -- venue: KRX | NXT
+    prev_close REAL,                          -- 전일 KRX 종가(전일 15:30 봉) — 상한가 판정 기준
+    bars TEXT,                                -- JSON [[hhmm, open, high, low, close, volume], ...] 시간순
+    n INTEGER, updated_at TEXT,
+    PRIMARY KEY (date, code, venue)
+);
+CREATE TABLE IF NOT EXISTS scenario_recs (         -- 일일 손익 시나리오 추천(분류별) — 전일 대비 변화 비교
+    date TEXT NOT NULL, segment TEXT NOT NULL,
+    entry TEXT, mode TEXT, stop REAL, take REAL,
+    zone TEXT,                                -- JSON {stop:[lo,hi], take:[lo,hi]}
+    metrics TEXT,                             -- JSON 선정 구간·검증 성과·신뢰도
+    created_at TEXT,
+    PRIMARY KEY (date, segment)
+);
+
 CREATE TABLE IF NOT EXISTS weight_history (    -- 주간 가중치 조절 기록
     version       INTEGER PRIMARY KEY,
     applied_at    TEXT, target TEXT, sample_n INTEGER,
     weights       TEXT,                     -- JSON
     prev_weights  TEXT,
     note          TEXT
+);
+
+CREATE TABLE IF NOT EXISTS press_meta (            -- 부처 보도자료(articles.source='ministry_press') 부가 정보
+    article_id    INTEGER PRIMARY KEY,      -- articles.id
+    ministry      TEXT NOT NULL,            -- motir, msit, molit … (collectors/ministry_press.MINISTRIES)
+    ministry_name TEXT NOT NULL,            -- 리포트 표시명 — 근거 표시 [정책:부처명]
+    item_id       TEXT NOT NULL,            -- 누리집 글 번호
+    dept          TEXT, category TEXT,
+    list_date     TEXT NOT NULL,            -- 목록의 등록일 YYYY-MM-DD
+    posted_at     TEXT,                     -- 누리집이 보여 준 게시 시각(있을 때만: 국토부·복지부·원안위)
+    time_basis    TEXT,                     -- rss | page | snapshot(15:30 스냅샷 뒤) | date(시작일 뒤 날짜) | embargo | before(장중)
+    time_source   TEXT,                     -- 시각 출처: rss | page(누리집 표시) | snapshot(15:30 스냅샷) | date | embargo
+    embargo_at    TEXT,                     -- 엠바고(보도 시점) 시각 'YYYY-MM-DD HH:MM:SS'
+    embargo_text  TEXT,                     -- 엠바고 표기 원문(조간·석간·즉시 포함)
+    attachments   TEXT,                     -- JSON [{name, url}]
+    merged_from   TEXT,                     -- 같은 보도로 묶인 다른 글 JSON [{id, source, office, published_at}]
+    first_seen_at TEXT
+);
+CREATE TABLE IF NOT EXISTS press_seen (            -- 부처 목록에서 처음 본 시각(15:30 스냅샷 = 장중 게시 판정 기준)
+    ministry TEXT NOT NULL, item_id TEXT NOT NULL, list_date TEXT, title TEXT, first_seen_at TEXT NOT NULL,
+    PRIMARY KEY (ministry, item_id)
+);
+CREATE TABLE IF NOT EXISTS press_snapshots (       -- 15:30 스냅샷 실행 기록 (날짜만 있는 부처의 게시 시각 판정용)
+    snap_date TEXT PRIMARY KEY, taken_at TEXT NOT NULL, detail TEXT
+);
+CREATE TABLE IF NOT EXISTS policy_dups (           -- 같은 보도자료 묶음: 정책브리핑 기사·다른 부처 합동 보도 → 대표 글
+    article_id   INTEGER PRIMARY KEY,       -- 묶여서 빠지는 글
+    canonical_id INTEGER NOT NULL,          -- 대표 글(부처 원문 우선). 대표의 published_at = 묶음에서 가장 먼저 게시된 시각
+    similarity REAL, reason TEXT, merged_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS collect_runs (
@@ -284,7 +335,8 @@ CREATE TABLE IF NOT EXISTS collect_runs (
     window_end    TEXT,
     fetched       INTEGER,                  -- 시간대 안에서 받은 건수
     inserted      INTEGER,                  -- 새로 저장된 건수
-    warnings      TEXT                      -- JSON 배열
+    warnings      TEXT,                     -- JSON 배열
+    detail        TEXT                      -- 소스별 세부(부처 보도자료: 부처별 건수·실패 JSON)
 );
 """
 
@@ -301,6 +353,19 @@ def connect(path: Path = DB_PATH) -> sqlite3.Connection:
 
 def _migrate(conn: sqlite3.Connection) -> None:
     """테마 테이블에 source 컬럼이 없던 초기 버전 → 다시 만든다(매일 새로 받는 파생 데이터라 버려도 됨)."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(press_meta)")}
+    if cols and "time_source" not in cols:          # 시각 출처(RSS / 페이지 표시 / 15:30 스냅샷)
+        conn.execute("ALTER TABLE press_meta ADD COLUMN time_source TEXT")
+        conn.execute("UPDATE press_meta SET time_source = CASE time_basis WHEN 'before' THEN 'snapshot' ELSE time_basis END")
+        conn.commit()
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(collect_runs)")}
+    if cols and "detail" not in cols:               # 부처 보도자료: 부처별 건수·실패
+        conn.execute("ALTER TABLE collect_runs ADD COLUMN detail TEXT")
+        conn.commit()
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(disclosures)")}
+    if cols and "body_attempts" not in cols:        # 본문 조회 실패 횟수 — 일시 실패는 다음 실행 때 재시도(3회까지)
+        conn.execute("ALTER TABLE disclosures ADD COLUMN body_attempts INTEGER DEFAULT 0")
+        conn.commit()
     cols = {r[1] for r in conn.execute("PRAGMA table_info(themes)")}
     if cols and "source" not in cols:
         conn.execute("DROP TABLE themes")

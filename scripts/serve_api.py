@@ -32,14 +32,23 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from stock_news.analysis.categories import label as category_label  # noqa: E402
-from stock_news.config import DATA_DIR, DB_PATH, SESSIONS, load_env, report_path, session_dir  # noqa: E402
-from stock_news.report import SOURCE_NAMES, basis_tags, collect_status, resolve_sources  # noqa: E402
-from stock_news.timewindow import now_kst  # noqa: E402
+from stock_news.config import DATA_DIR, DB_PATH, SESSIONS, WORK_DIR, load_env, report_path, session_dir  # noqa: E402
+from stock_news.report import SOURCE_NAMES, basis_labels, basis_tags, collect_status, resolve_sources  # noqa: E402
+from stock_news.timewindow import is_trading_day, load_holidays, now_kst  # noqa: E402
+from stock_news.tracking import after_prices  # noqa: E402
+
+
+def next_trading_day(date: str) -> str:
+    hol = load_holidays()
+    d = dt.date.fromisoformat(date) + dt.timedelta(days=1)
+    while not is_trading_day(d, hol):
+        d += dt.timedelta(days=1)
+    return d.isoformat()
 
 API_VERSION = 1
 DEFAULT_PORT = 8770
 MAX_LIMIT = 500
-NEWS_SOURCES = {"naver": "naver_focus_401", "policy": "korea_policy"}
+NEWS_SOURCES = {"naver": "naver_focus_401", "policy": "korea_policy", "ministry": "ministry_press"}
 DEFAULT_NETS = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,::1/128"
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}( \d{2}:\d{2}(:\d{2})?)?$")
 CODE_RE = re.compile(r"^[0-9A-Z]{6}$")
@@ -111,7 +120,7 @@ def source_label(src: str) -> str:
 
 
 def article_out(r: sqlite3.Row, with_body: bool = False) -> dict:
-    d = {"id": r["id"], "source": "policy" if r["source"] == "korea_policy" else "naver",
+    d = {"id": r["id"], "source": {v: k for k, v in NEWS_SOURCES.items()}.get(r["source"], "naver"),
          "source_name": source_label(r["source"]), "office": r["office_name"], "title": r["title"],
          "summary": r["summary"], "published_at": r["published_at"], "url": r["url"]}
     if with_body:
@@ -165,18 +174,21 @@ def load_scored(conn, date: str, session: str = "morning") -> dict | None:
     return {"date": date, "session": session, "window": None, "items": items, "reviewed_policies": [], "fallback": fb}
 
 
-def score_item(conn, it: dict, rank: int | None) -> dict:
+def score_item(conn, it: dict, rank: int | None, d0: str | None = None) -> dict:
     factors = {}
     for k, f in (it.get("factors") or {}).items():
         factors[k] = None if f is None else {"score": f.get("score"), "reason": f.get("reason")}
     return {"rank": rank, "code": it["code"], "name": it.get("name"), "sentiment": it.get("sentiment"),
             "final": it.get("final"), "final_raw": it.get("final_raw"), "material": it.get("material"),
             "category": it.get("category"), "category_name": category_label(it.get("category")),
-            "basis": basis_tags(conn, it), "caution": it.get("caution"), "factors": factors,
+            "basis": basis_tags(conn, it), "basis_labels": basis_labels(conn, it),   # ["공시", "정책:산업부", …]
+            "caution": it.get("caution"), "factors": factors,
             "sources": [{"label": n, "url": u} for n, u in resolve_sources(conn, it.get("sources", []))],
             "item_id": it.get("id"),
             # 저녁 종가매매: 리포트 시각 시세(KRX 종가·NXT 가격·시간외 등락·공시 후 등락·시간외 거래대금·NXT 가능)
-            "evening_quote": it.get("evening")}
+            "evening_quote": it.get("evening"),
+            # 이후 주가(D0 = 아침은 그날, 저녁은 다음 거래일) — 종목별 /api/stock 조회 없이 바로 쓰도록
+            "after": after_prices(conn, it["code"], d0)}
 
 
 def report(conn, date: str, session: str = "morning") -> dict:
@@ -189,11 +201,13 @@ def report(conn, date: str, session: str = "morning") -> dict:
     warnings = []
     if sc.get("window"):
         _, warnings = collect_status(conn, sc["window"])
+    d0 = date if session == "morning" else next_trading_day(date)
     return {"date": date, "session": session, "window": sc.get("window"), "weights_version": sc.get("weights_version"),
             "fallback": bool(sc.get("fallback")), "fallback_reason": sc.get("fallback_reason"),
             "warnings": warnings,
-            "bullish": [score_item(conn, it, n) for n, it in enumerate(good, 1)],
-            "bearish": [score_item(conn, it, None) for it in bad],
+            "after_d0": d0,
+            "bullish": [score_item(conn, it, n, d0) for n, it in enumerate(good, 1)],
+            "bearish": [score_item(conn, it, None, d0) for it in bad],
             "reviewed_policies": sc.get("reviewed_policies", []),
             # 아침 = 그날 최종 전망, 저녁 = 다음 거래일 1차 전망(그 저녁 리포트에 실린 것)
             "theme_outlook": (theme_outlook(conn, date, "morning") if session == "morning" else
@@ -209,9 +223,11 @@ def ep_health(conn, _p, _m) -> dict:
     last_evening = conn.execute("SELECT MAX(date) FROM evening_scores").fetchone()[0]
     last_theme = conn.execute("SELECT MAX(dt) FROM theme_daily").fetchone()[0]
     last_outlook = conn.execute("SELECT MAX(date) FROM theme_forecasts").fetchone()[0]
+    sc = sorted(WORK_DIR.glob("*/scenario.json"))
     return {"ok": True, "api_version": API_VERSION, "now": f"{now_kst():%Y-%m-%d %H:%M:%S}",
             "latest_article": last, "latest_report": last_score, "latest_evening_report": last_evening,
-            "latest_theme_day": last_theme, "latest_theme_outlook": last_outlook}
+            "latest_theme_day": last_theme, "latest_theme_outlook": last_outlook,
+            "latest_scenario": sc[-1].parent.name if sc else None}
 
 
 def ep_dates(conn, p, _m) -> dict:
@@ -254,7 +270,7 @@ def ep_news(conn, p, _m) -> dict:
     src = q1(p, "source", "all")
     if src != "all":
         if src not in NEWS_SOURCES:
-            raise ApiError(400, "source: all / naver / policy")
+            raise ApiError(400, "source: all / naver / policy / ministry")
         where.append("source=?")
         args.append(NEWS_SOURCES[src])
     frm, to = q_time(p, "from"), q_time(p, "to", end=True)
@@ -486,10 +502,51 @@ def ep_themes(conn, p, m) -> dict:
             "forecasts": fc, "results": res}
 
 
+def ep_scenario(conn, p, m) -> dict:
+    """일일 손익 시나리오(평일 16:10) — 추천·진입 비교·기간 표. date=latest면 마지막 생성일."""
+    date = m[0]
+    if date == "latest":
+        files = sorted(WORK_DIR.glob("*/scenario.json"))
+        if not files:
+            raise ApiError(404, "손익 시나리오 없음(평일 16:10 생성)")
+        f = files[-1]
+    else:
+        f = WORK_DIR / check_date(date) / "scenario.json"
+        if not f.exists():
+            raise ApiError(404, "그날 손익 시나리오 없음")
+    out = json.loads(f.read_text(encoding="utf-8"))
+    rows = out.get("trades") or []
+    td, code = q1(p, "trade_date"), q1(p, "code")
+    if td:
+        check_date(td)
+        rows = [r for r in rows if r["date"] == td]
+    if code:
+        rows = [r for r in rows if r["code"] == check_code(code)]
+    if q1(p, "trades") == "0":
+        out.pop("trades", None)
+        return out
+    if q1(p, "bars") == "1":                     # 재계산용: 진입 봉부터 15:30까지 1분봉 [hhmm, 시, 고, 저, 종, 거래량]
+        from stock_news import minute_bars
+        from stock_news.analysis import scenario
+        cfg = scenario.load_config()
+        md_all = minute_bars.load(conn, sorted({r["date"] for r in rows}))
+        for r in rows:
+            md = md_all.get((r["date"], r["code"]))
+            if not md:
+                r["bars"] = None
+                continue
+            e = scenario.make_entries({**md, "krx_close": r["close"], "prev_close": r.get("prev_close") or md["prev_close"]},
+                                      cfg).get(r["entry"]) or {}
+            r["bars"] = e.get("bars")
+    out["trades"] = rows
+    return out
+
+
 ROUTES: list[tuple[re.Pattern, callable]] = [
     (re.compile(r"^/api/stocks$"), ep_stocks),
     (re.compile(r"^/api/themes/(latest|\d{4}-\d{2}-\d{2})$"), ep_themes),
     (re.compile(r"^/api/theme-outlook/(latest|\d{4}-\d{2}-\d{2})$"), ep_outlook),
+    (re.compile(r"^/api/scenario/(latest|\d{4}-\d{2}-\d{2})$"), ep_scenario),
     (re.compile(r"^/api/health$"), ep_health),
     (re.compile(r"^/api/dates$"), ep_dates),
     (re.compile(r"^/api/report/(latest|\d{4}-\d{2}-\d{2})$"), ep_report),
